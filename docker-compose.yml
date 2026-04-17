@@ -1,0 +1,81 @@
+#Le fichier docker-compose est un fichier placé dans la racine du projet permetant de lancer tous les conteneurs en une seule commande
+#La commande est docker compose up
+
+version: '3.8' #La version du format du fichier docker-compose
+
+services: #La partie services elle definit tous les conteneurs (services) qu'on peut lancer.
+
+  auth-service: #Le service authentification qui tourne sur le port 8081
+    build: ./auth-service
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
+
+  admin-service: #Le service admin qui tourne sur le port 8082
+    build: ./admin-service
+    ports:
+      - "8082:8082"
+    networks:
+      - backend
+
+  application-service: #Le service application qui tourne sur le port 8083
+    build: ./application-service
+    ports:
+      - "8083:8083"
+    networks:
+      - backend
+
+  assessment-service: #Le service assessment qui tourne sur le port 8084
+    build: ./assessment-service
+    ports:
+      - "8084:8084"
+    networks:
+      - backend
+
+  company-service: #Le service company qui tourne sur le port 8085
+    build: ./company-service
+    ports:
+      - "8085:8085"
+    networks:
+      - backend
+
+  freelancer-service: #Le service freelancer qui tourne sur le port 8086
+    build: ./freelancer-service
+    ports:
+      - "8086:8086"
+    networks:
+      - backend
+
+  messaging-service: #Le service messaging qui tourne sur le port 8087
+    build: ./messaging-service
+    ports:
+      - "8087:8087"
+    networks:
+      - backend
+
+  mission-service: #Le service mission qui tourne sur le port 8088
+    build: ./mission-service
+    ports:
+      - "8088:8088"
+    networks:
+      - backend
+
+  payment-service: #Le service payment qui tourne sur le port 8089
+    build: ./payment-service
+    ports:
+      - "8089:8089"
+    networks:
+      - backend
+
+  scoring-service: #Le service scoring qui tourne sur le port 8090
+    build: ./scoring-service
+    ports:
+      - "8090:8090"
+    networks:
+      - backend
+
+
+networks:
+  backend:
+    driver: bridge
