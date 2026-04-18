@@ -65,19 +65,19 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres-user:
+  postgres-freelancer:
     image: postgres:15
-    container_name: postgres-user
+    container_name: postgres-freelancer
     environment:
-      POSTGRES_DB: user_db
-      POSTGRES_USER: user_user
-      POSTGRES_PASSWORD: user_secret
+      POSTGRES_DB: freelancer_db
+      POSTGRES_USER: freelancer_user
+      POSTGRES_PASSWORD: freelancer_secret
     volumes:
-      - postgres_user_data:/var/lib/postgresql/data
+      - postgres_freelancer_data:/var/lib/postgresql/data
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user_user"]
+      test: ["CMD-SHELL", "pg_isready -U freelancer_user"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -241,15 +241,15 @@ services:
     networks:
       - backend
 
-  user-service:
-    build: ./user-service
-    container_name: user-service
+  freelancer-service:
+    build: ./freelancer-service
+    container_name: freelancer-service
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/user_db
-      SPRING_DATASOURCE_USERNAME: user_user
-      SPRING_DATASOURCE_PASSWORD: user_secret
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/freelancer_db
+      SPRING_DATASOURCE_USERNAME: freelancer_user
+      SPRING_DATASOURCE_PASSWORD: freelancer_secret
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -411,7 +411,7 @@ networks:
 volumes:
   postgres_keycloak_data:
   postgres_auth_data:
-  postgres_user_data:
+  postgres_freelancer_data:
   postgres_company_data:
   postgres_mission_data:
   postgres_application_data:

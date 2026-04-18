@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: user-service
+    name: freelancer-service
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
