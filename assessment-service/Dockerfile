@@ -27,7 +27,7 @@ RUN chown appuser:appgroup app.jar
 
 USER appuser
 
-EXPOSE 8081
+EXPOSE 8090
 
 # Optimisations JVM pour les containers
 ENTRYPOINT ["java", \
