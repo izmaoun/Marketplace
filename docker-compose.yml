@@ -1,81 +1,422 @@
-#Le fichier docker-compose est un fichier placé dans la racine du projet permetant de lancer tous les conteneurs en une seule commande
-#La commande est docker compose up
+version: '3.8'
 
-version: '3.8' #La version du format du fichier docker-compose
+services:
 
-services: #La partie services elle definit tous les conteneurs (services) qu'on peut lancer.
+  # ════════════════════════════════════════════════════════
+  # INFRASTRUCTURE
+  # ════════════════════════════════════════════════════════
 
-  auth-service: #Le service authentification qui tourne sur le port 8081
+  # ── Keycloak DB ─────────────────────────────────────────
+  postgres-keycloak:
+    image: postgres:15
+    container_name: postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak_db
+      POSTGRES_USER: keycloak_user
+      POSTGRES_PASSWORD: keycloak_secret
+    volumes:
+      - postgres_keycloak_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak_db
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: keycloak_secret
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ════════════════════════════════════════════════════════
+  # BASES DE DONNÉES — UNE PAR SERVICE
+  # ════════════════════════════════════════════════════════
+
+  postgres-auth:
+    image: postgres:15
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_secret
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-user:
+    image: postgres:15
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user_user
+      POSTGRES_PASSWORD: user_secret
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-company:
+    image: postgres:15
+    container_name: postgres-company
+    environment:
+      POSTGRES_DB: company_db
+      POSTGRES_USER: company_user
+      POSTGRES_PASSWORD: company_secret
+    volumes:
+      - postgres_company_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U company_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-mission:
+    image: postgres:15
+    container_name: postgres-mission
+    environment:
+      POSTGRES_DB: mission_db
+      POSTGRES_USER: mission_user
+      POSTGRES_PASSWORD: mission_secret
+    volumes:
+      - postgres_mission_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mission_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-application:
+    image: postgres:15
+    container_name: postgres-application
+    environment:
+      POSTGRES_DB: application_db
+      POSTGRES_USER: application_user
+      POSTGRES_PASSWORD: application_secret
+    volumes:
+      - postgres_application_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U application_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-admin:
+    image: postgres:15
+    container_name: postgres-admin
+    environment:
+      POSTGRES_DB: admin_db
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_secret
+    volumes:
+      - postgres_admin_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-payment:
+    image: postgres:15
+    container_name: postgres-payment
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_secret
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-scoring:
+    image: postgres:15
+    container_name: postgres-scoring
+    environment:
+      POSTGRES_DB: scoring_db
+      POSTGRES_USER: scoring_user
+      POSTGRES_PASSWORD: scoring_secret
+    volumes:
+      - postgres_scoring_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scoring_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-assessment:
+    image: postgres:15
+    container_name: postgres-assessment
+    environment:
+      POSTGRES_DB: assessment_db
+      POSTGRES_USER: assessment_user
+      POSTGRES_PASSWORD: assessment_secret
+    volumes:
+      - postgres_assessment_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assessment_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # messaging-service → MongoDB (pas PostgreSQL)
+  mongodb-messaging:
+    image: mongo:7
+    container_name: mongodb-messaging
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: messaging_user
+      MONGO_INITDB_ROOT_PASSWORD: messaging_secret
+      MONGO_INITDB_DATABASE: messaging_db
+    volumes:
+      - mongodb_messaging_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+  # ════════════════════════════════════════════════════════
+  # MICROSERVICES — PHASE 1
+  # ════════════════════════════════════════════════════════
+
+  auth-service:
     build: ./auth-service
+    container_name: auth-service
     ports:
       - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: auth_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+      KEYCLOAK_CLIENT_ID: auth-service
+      KEYCLOAK_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - backend
 
-  admin-service: #Le service admin qui tourne sur le port 8082
-    build: ./admin-service
+  user-service:
+    build: ./user-service
+    container_name: user-service
     ports:
       - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/user_db
+      SPRING_DATASOURCE_USERNAME: user_user
+      SPRING_DATASOURCE_PASSWORD: user_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-user:
+        condition: service_healthy
     networks:
       - backend
 
-  application-service: #Le service application qui tourne sur le port 8083
-    build: ./application-service
+  company-service:
+    build: ./company-service
+    container_name: company-service
     ports:
       - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-company:5432/company_db
+      SPRING_DATASOURCE_USERNAME: company_user
+      SPRING_DATASOURCE_PASSWORD: company_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-company:
+        condition: service_healthy
     networks:
       - backend
 
-  assessment-service: #Le service assessment qui tourne sur le port 8084
-    build: ./assessment-service
+  mission-service:
+    build: ./mission-service
+    container_name: mission-service
     ports:
       - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-mission:5432/mission_db
+      SPRING_DATASOURCE_USERNAME: mission_user
+      SPRING_DATASOURCE_PASSWORD: mission_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-mission:
+        condition: service_healthy
     networks:
       - backend
 
-  company-service: #Le service company qui tourne sur le port 8085
-    build: ./company-service
+  application-service:
+    build: ./application-service
+    container_name: application-service
     ports:
       - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-application:5432/application_db
+      SPRING_DATASOURCE_USERNAME: application_user
+      SPRING_DATASOURCE_PASSWORD: application_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-application:
+        condition: service_healthy
     networks:
       - backend
 
-  freelancer-service: #Le service freelancer qui tourne sur le port 8086
-    build: ./freelancer-service
+  # ════════════════════════════════════════════════════════
+  # MICROSERVICES — PHASE 2
+  # ════════════════════════════════════════════════════════
+
+  admin-service:
+    build: ./admin-service
+    container_name: admin-service
     ports:
       - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
+      SPRING_DATASOURCE_USERNAME: admin_user
+      SPRING_DATASOURCE_PASSWORD: admin_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-admin:
+        condition: service_healthy
     networks:
       - backend
 
-  messaging-service: #Le service messaging qui tourne sur le port 8087
+  messaging-service:
     build: ./messaging-service
+    container_name: messaging-service
     ports:
       - "8087:8087"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://messaging_user:messaging_secret@mongodb-messaging:27017/messaging_db?authSource=admin
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      - mongodb-messaging
     networks:
       - backend
 
-  mission-service: #Le service mission qui tourne sur le port 8088
-    build: ./mission-service
+  # ════════════════════════════════════════════════════════
+  # MICROSERVICES — PHASE 3
+  # ════════════════════════════════════════════════════════
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
     ports:
       - "8088:8088"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: payment_user
+      SPRING_DATASOURCE_PASSWORD: payment_secret
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
     networks:
       - backend
 
-  payment-service: #Le service payment qui tourne sur le port 8089
-    build: ./payment-service
+  scoring-service:
+    build: ./scoring-service
+    container_name: scoring-service
     ports:
       - "8089:8089"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-scoring:5432/scoring_db
+      SPRING_DATASOURCE_USERNAME: scoring_user
+      SPRING_DATASOURCE_PASSWORD: scoring_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-scoring:
+        condition: service_healthy
     networks:
       - backend
 
-  scoring-service: #Le service scoring qui tourne sur le port 8090
-    build: ./scoring-service
+  assessment-service:
+    build: ./assessment-service
+    container_name: assessment-service
     ports:
       - "8090:8090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-assessment:5432/assessment_db
+      SPRING_DATASOURCE_USERNAME: assessment_user
+      SPRING_DATASOURCE_PASSWORD: assessment_secret
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: b2b-platform
+    depends_on:
+      postgres-assessment:
+        condition: service_healthy
     networks:
       - backend
 
+# ════════════════════════════════════════════════════════
+# RÉSEAU & VOLUMES
+# ════════════════════════════════════════════════════════
 
 networks:
   backend:
     driver: bridge
+
+volumes:
+  postgres_keycloak_data:
+  postgres_auth_data:
+  postgres_user_data:
+  postgres_company_data:
+  postgres_mission_data:
+  postgres_application_data:
+  postgres_admin_data:
+  postgres_payment_data:
+  postgres_scoring_data:
+  postgres_assessment_data:
+  mongodb_messaging_data:
