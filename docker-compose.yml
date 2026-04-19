@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # ════════════════════════════════════════════════════════
@@ -253,7 +251,7 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
-      postgres-user:
+      postgres-freelancer:
         condition: service_healthy
     networks:
       - backend
