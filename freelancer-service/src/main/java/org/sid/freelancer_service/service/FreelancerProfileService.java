@@ -11,11 +11,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class FreelancerProfileService {
+
+    private static final Set<String> ALLOWED_CV_CONTENT_TYPES = Set.of(
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
 
     private final FreelancerProfileRepository profileRepository;
     private final SkillRepository skillRepository;
@@ -190,10 +197,8 @@ public class FreelancerProfileService {
             throw new IllegalArgumentException("Uploaded file is empty.");
         }
         String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf")
-                && !contentType.startsWith("application/msword")
-                && !contentType.startsWith("application/vnd.openxmlformats"))) {
-            throw new IllegalArgumentException("Only PDF and Word documents are accepted.");
+        if (contentType == null || !ALLOWED_CV_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Only PDF and Word documents (.pdf, .doc, .docx) are accepted.");
         }
         FreelancerProfile profile = findProfileOrThrow(userId);
         CvDocument cv = cvDocumentRepository.findByProfileId(userId)
