@@ -142,6 +142,8 @@ services:
       POSTGRES_PASSWORD: admin_secret
     volumes:
       - postgres_admin_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
     networks:
       - backend
     healthcheck:
