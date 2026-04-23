@@ -25,4 +25,15 @@ public class FreelanceProfile {
 
     @ElementCollection
     private List<String> projects;
+
+    @Column(name = "is_suspended", nullable = false)
+    private boolean isSuspended = false;
+
+    public boolean isSuspended() {
+        return isSuspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        isSuspended = suspended;
+    }
 }

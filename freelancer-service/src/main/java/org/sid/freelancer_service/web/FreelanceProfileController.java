@@ -50,5 +50,13 @@ public class FreelanceProfileController {
         service.deleteProfile(id);
         return ResponseEntity.noContent().build();
     }
-}
 
+    @PostMapping("/{id}/suspend")
+    public ResponseEntity<Void> suspendProfile(@PathVariable Long id) {
+        if (!service.getProfile(id).isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        service.suspendProfile(id);
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: admin-service
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    consul:
+      enabled: false
+  config:
+    import: "optional:configserver:"
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -12,6 +21,21 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-spring.security.oauth2.resourceserver.jwt:
-  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+#spring.security.oauth2.resourceserver.jwt:
+#  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.context.annotation.AnnotationConfigApplicationContext: DEBUG
+
+feign:
+  hystrix:
+    enabled: false
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
