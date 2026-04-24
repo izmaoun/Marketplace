@@ -30,5 +30,11 @@ public class FreelanceProfileService {
     public void deleteProfile(Long id) {
         repository.deleteById(id);
     }
-}
 
+    public void suspendProfile(Long id) {
+        repository.findById(id).ifPresent(profile -> {
+            profile.setSuspended(true);
+            repository.save(profile);
+        });
+    }
+}

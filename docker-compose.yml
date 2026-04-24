@@ -104,14 +104,16 @@ services:
     container_name: postgres-mission
     environment:
       POSTGRES_DB: mission_db
-      POSTGRES_USER: mission_user
-      POSTGRES_PASSWORD: mission_secret
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_mission_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mission_user"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -138,14 +140,16 @@ services:
     container_name: postgres-admin
     environment:
       POSTGRES_DB: admin_db
-      POSTGRES_USER: admin_user
-      POSTGRES_PASSWORD: admin_secret
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_admin_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin_user"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -282,8 +286,8 @@ services:
       - "8084:8084"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-mission:5432/mission_db
-      SPRING_DATASOURCE_USERNAME: mission_user
-      SPRING_DATASOURCE_PASSWORD: mission_secret
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -320,8 +324,8 @@ services:
       - "8086:8086"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
-      SPRING_DATASOURCE_USERNAME: admin_user
-      SPRING_DATASOURCE_PASSWORD: admin_secret
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
