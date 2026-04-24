@@ -4,14 +4,28 @@ server:
 spring:
   application:
     name: mission-service
+  cloud:
+    config:
+      enabled: false
+    consul:
+      enabled: false
+  config:
+    import: ""
   datasource:
+    #    url: jdbc:postgresql://localhost:5432/freelancerdb
+    #    username: postgres
+    #    password: "fifa2014"
+    #    driver-class-name: org.postgresql.Driver
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-spring.security.oauth2.resourceserver.jwt:
-  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+#spring.security.oauth2.resourceserver.jwt:
+#  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
