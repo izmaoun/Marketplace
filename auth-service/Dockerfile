@@ -8,8 +8,7 @@ RUN mvn dependency:go-offline
 
 #C'est pour copier le code source et compiler
 COPY src ./src
-RUN mvn clean package -DskipTests
-
+RUN mvn clean package -Dmaven.test.skip=true
 #Runtime (C'est l'exécution)
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
