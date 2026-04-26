@@ -6,20 +6,21 @@ import org.keycloak.OAuth2Constants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
-@Configuration //Annotaion pour Spring de definition de Beans que Spring va gerer
+@Configuration //Annotationpour Spring de definition de Beans que Spring va gerer
 public class KeycloakConfig {
 
-    @Value("${keycloak.auth-server-url}") //L'adresse URL de Keycloak http://localhost:8080
+    @Value("${KEYCLOAK_URL}") //L'adresse URL de Keycloak http://localhost:8080
     private String serverUrl;
 
-    @Value("${keycloak.realm}") //Le nom du Royaume (realm) dans Keycloa c'est l'espace de travail pour le projet (b2b-platform)
+    @Value("${KEYCLOAK_REALM}") //Le nom du Royaume (realm) dans Keycloa c'est l'espace de travail pour le projet (b2b-platform)
     private String realm;
 
-    @Value("${keycloak.client-id}") //L'id du client que nous avons creer pour se microservice dans Keycloak auth-service
+    @Value("${KEYCLOAK_CLIENT_ID}") //L'id du client que nous avons creer pour se microservice dans Keycloak auth-service
     private String clientId;
 
-    @Value("${keycloak.client-secret}") //La cle secrete du client auth-service a partir de Keycloak
+    @Value("${KEYCLOAK_CLIENT_SECRET}") //La cle secrete du client auth-service a partir de Keycloak
     private String clientSecret;
 
     @Bean //La creation du Bean Keycloak par Spring
@@ -31,5 +32,9 @@ public class KeycloakConfig {
                 .clientId(clientId)
                 .clientSecret(clientSecret)
                 .build();
+    }
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

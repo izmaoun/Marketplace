@@ -1,8 +1,8 @@
 package org.sid.auth_service.Controller;
 
 import org.sid.auth_service.DTO.AuthRequest;
-import org.sid.auth_service.DTO.FreelancerRegisterRequest; // À créer
-import org.sid.auth_service.DTO.CompanyRegisterRequest;    // À créer
+import org.sid.auth_service.DTO.FreelancerRegisterRequest;
+import org.sid.auth_service.DTO.CompanyRegisterRequest;
 import lombok.RequiredArgsConstructor;
 import org.sid.auth_service.Service.AuthService;
 import org.springframework.http.ResponseEntity;

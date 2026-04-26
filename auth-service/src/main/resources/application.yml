@@ -4,14 +4,13 @@ server:
 spring:
   application:
     name: auth-service
-  datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+
+  # DÉSACTIVER la configuration automatique de la base de données
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
   security:
     oauth2:
       resourceserver:
@@ -23,3 +22,20 @@ keycloak:
   realm: ${KEYCLOAK_REALM}
   client-id: ${KEYCLOAK_CLIENT_ID}
   client-secret: ${KEYCLOAK_CLIENT_SECRET}
+
+# Healthcheck pour Docker
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Logs
+logging:
+  level:
+    root: INFO
+    org.springframework.security: DEBUG
+    org.keycloak: DEBUG

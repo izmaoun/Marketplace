@@ -4,9 +4,11 @@ import lombok.Data;
 
 @Data
 public class FreelancerRegisterRequest {
-    private String email;
-    private String password;
     private String firstName;
     private String lastName;
-    private String jobTitle; // Ex: Développeur Java, Designer UX
+    private String email;
+    private int phone;
+    private String summary;
+    private String password;
+    private String cvUrl; // Ex: Développeur Java, Designer UX
 }
