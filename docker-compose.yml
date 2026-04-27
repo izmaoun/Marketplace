@@ -1,4 +1,18 @@
 services:
+  # ── WSO2 API Manager (Gateway + Management)
+  wso2-am:
+    image: wso2/wso2am:latest
+    container_name: wso2-am
+    ports:
+      - "9443:9443" # Interface d'administration (Publisher/DevPortal)
+      - "8243:8243" # Passerelle HTTPS (Gateway)
+      - "8280:8280" # Passerelle HTTP (Gateway)
+    environment:
+      - NODE_IP=127.0.0.1
+    networks:
+      - backend
+    depends_on:
+      - keycloak
 
   # ════════════════════════════════════════════════════════
   # INFRASTRUCTURE
@@ -46,30 +60,13 @@ services:
   # BASES DE DONNÉES — UNE PAR SERVICE
   # ════════════════════════════════════════════════════════
 
-  postgres-auth:
-    image: postgres:15
-    container_name: postgres-auth
-    environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: auth_user
-      POSTGRES_PASSWORD: auth_secret
-    volumes:
-      - postgres_auth_data:/var/lib/postgresql/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   postgres-freelancer:
     image: postgres:15
     container_name: postgres-freelancer
     environment:
       POSTGRES_DB: freelancer_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_freelancer_data:/var/lib/postgresql/data
     ports:
@@ -87,14 +84,16 @@ services:
     container_name: postgres-company
     environment:
       POSTGRES_DB: company_db
-      POSTGRES_USER: company_user
-      POSTGRES_PASSWORD: company_secret
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
     volumes:
       - postgres_company_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U company_user"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -223,28 +222,22 @@ services:
   # ════════════════════════════════════════════════════════
   # MICROSERVICES — PHASE 1
   # ════════════════════════════════════════════════════════
-
   auth-service:
     build: ./auth-service
     container_name: auth-service
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/auth_db
-      SPRING_DATASOURCE_USERNAME: auth_user
-      SPRING_DATASOURCE_PASSWORD: auth_secret
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       KEYCLOAK_CLIENT_ID: auth-service
-      KEYCLOAK_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET}
+      KEYCLOAK_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET}  # ← Gardez votre variable
     depends_on:
-      postgres-auth:
-        condition: service_healthy
       keycloak:
         condition: service_started
     networks:
       - backend
-
+    restart: unless-stopped
   freelancer-service:
     build: ./freelancer-service
     container_name: freelancer-service
@@ -253,7 +246,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-freelancer:5432/freelancer_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -269,8 +262,8 @@ services:
       - "8083:8083"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-company:5432/company_db
-      SPRING_DATASOURCE_USERNAME: company_user
-      SPRING_DATASOURCE_PASSWORD: company_secret
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -414,7 +407,6 @@ networks:
 
 volumes:
   postgres_keycloak_data:
-  postgres_auth_data:
   postgres_freelancer_data:
   postgres_company_data:
   postgres_mission_data:

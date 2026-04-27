@@ -11,23 +11,13 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Désactiver le CSRF (Indispensable pour tester avec Postman)
                 .csrf(csrf -> csrf.disable())
-
-                // 2. Configurer les autorisations
                 .authorizeHttpRequests(auth -> auth
-                        // On autorise TOUT ce qui commence par /auth/ sans token
-                        .requestMatchers("/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-
-                // 3. Configurer le mode Resource Server (JWT)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-
+                        .anyRequest().permitAll()  // ✅ TOUT est public dans auth-service
+                );
         return http.build();
     }
 }

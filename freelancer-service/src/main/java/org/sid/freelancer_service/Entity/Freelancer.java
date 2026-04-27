@@ -1,4 +1,4 @@
-package org.sid.freelancer_service.entities;
+package org.sid.freelancer_service.Entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -6,7 +6,7 @@ import java.util.List;
 
 @Entity
 @Data
-public class FreelanceProfile {
+public class Freelancer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -15,6 +15,7 @@ public class FreelanceProfile {
     private String email;
     private String phone;
     private String summary;
+    private String password;
     private String cvUrl;
 
     @ElementCollection

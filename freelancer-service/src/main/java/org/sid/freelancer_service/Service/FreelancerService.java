@@ -1,29 +1,29 @@
-package org.sid.freelancer_service.services;
+package org.sid.freelancer_service.Service;
 
-import org.sid.freelancer_service.entities.FreelanceProfile;
-import org.sid.freelancer_service.repositories.FreelanceProfileRepository;
+import org.sid.freelancer_service.Entity.Freelancer;
+import org.sid.freelancer_service.Repository.FreelancerRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
-public class FreelanceProfileService {
-    private final FreelanceProfileRepository repository;
+public class FreelancerService {
+    private final FreelancerRepository repository;
 
-    public FreelanceProfileService(FreelanceProfileRepository repository) {
+    public FreelancerService(FreelancerRepository repository) {
         this.repository = repository;
     }
 
-    public List<FreelanceProfile> getAllProfiles() {
+    public List<Freelancer> getAllProfiles() {
         return repository.findAll();
     }
 
-    public Optional<FreelanceProfile> getProfile(Long id) {
+    public Optional<Freelancer> getProfile(Long id) {
         return repository.findById(id);
     }
 
-    public FreelanceProfile saveProfile(FreelanceProfile profile) {
+    public Freelancer saveProfile(Freelancer profile) {
         return repository.save(profile);
     }
 
