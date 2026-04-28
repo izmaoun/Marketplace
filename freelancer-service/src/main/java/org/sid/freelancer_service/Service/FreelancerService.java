@@ -7,12 +7,18 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.sid.freelancer_service.Service.dto.MissionRequest;
+import org.sid.freelancer_service.Service.dto.MissionResponse;
+import org.sid.freelancer_service.Service.dto.WorkMode;
+
 @Service
 public class FreelancerService {
     private final FreelancerRepository repository;
+    private final MissionServiceClient missionServiceClient;
 
-    public FreelancerService(FreelancerRepository repository) {
+    public FreelancerService(FreelancerRepository repository, MissionServiceClient missionServiceClient) {
         this.repository = repository;
+        this.missionServiceClient = missionServiceClient;
     }
 
     public List<Freelancer> getAllProfiles() {
@@ -37,4 +43,28 @@ public class FreelancerService {
             repository.save(profile);
         });
     }
+
+    public List<MissionResponse> getAllMissions() {
+        return missionServiceClient.getAllMissions();
+    }
+
+    public MissionResponse getMissionById(Long id) {
+        return missionServiceClient.getMissionById(id);
+    }
+
+    public List<MissionResponse> getMissionsPublished() {
+        return missionServiceClient.getMissionsPublished();
+    }
+
+    public List<MissionResponse> searchMissions(String skill, String keyword, WorkMode workMode) {
+        return missionServiceClient.searchMissions(skill, keyword, workMode);
+    }
+
+    public List<MissionResponse> getMissionsByCompany(Long companyId) {
+        return missionServiceClient.getMissionsByCompany(companyId);
+    }
+
+//    public MissionResponse createMission(MissionRequest mission) {
+//        return missionServiceClient.createMission(mission);
+//    }
 }

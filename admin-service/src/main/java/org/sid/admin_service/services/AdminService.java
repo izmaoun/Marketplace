@@ -4,10 +4,15 @@ import org.sid.admin_service.entities.Admin;
 import org.sid.admin_service.repositories.AdminRepository;
 import org.sid.admin_service.entities.AuditLog;
 import org.sid.admin_service.repositories.AuditLogRepository;
+import org.sid.admin_service.dto.CompanyDto;
+import org.sid.admin_service.dto.FreelancerDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -16,11 +21,13 @@ public class AdminService {
     private final AdminRepository adminRepository;
     private final AuditLogRepository auditLogRepository;
     private final FreelancerServiceClient freelancerServiceClient;
+    private final CompanyServiceClient companyServiceClient;
 
-    public AdminService(AdminRepository adminRepository, AuditLogRepository auditLogRepository, FreelancerServiceClient freelancerServiceClient) {
+    public AdminService(AdminRepository adminRepository, AuditLogRepository auditLogRepository, FreelancerServiceClient freelancerServiceClient, CompanyServiceClient companyServiceClient) {
         this.adminRepository = adminRepository;
         this.auditLogRepository = auditLogRepository;
         this.freelancerServiceClient = freelancerServiceClient;
+        this.companyServiceClient=companyServiceClient;
     }
 
     // Méthodes pour gérer l'administrateur unique
@@ -52,17 +59,40 @@ public class AdminService {
     // Méthodes de gestion des comptes
     public void approveCompany(Long companyId) {
         // TODO: Implémenter la logique d'approbation d'une entreprise (ex: appel à company-service)
-        logAction("Approbation d'entreprise", "Company", companyId, null);
+        try {
+            companyServiceClient.validateCompany(companyId);
+            logAction("Approbation d'entreprise", "Company", companyId, null);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors d'approbation d'entreprise: " + e.getMessage());
+        }
     }
 
-    public void rejectCompany(Long companyId, String reason) {
-        // TODO: Implémenter la logique de rejet d'une entreprise avec un motif
-        logAction("Rejet d'entreprise", "Company", companyId, reason);
+    public CompanyDto rejectCompany(Long companyId, String reason) {
+        try {
+            Map<String, String> body = new HashMap<>();
+            body.put("reason", reason);
+            CompanyDto result = companyServiceClient.rejectCompany(companyId, body);
+            logAction("Rejet d'entreprise", "Company", companyId, reason);
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors du reject d'entreprise: " + e.getMessage());
+        }
     }
 
-    public void suspendCompany(Long companyId, String reason) {
-        // TODO: Implémenter la logique de suspension
-        logAction("Suspension d'entreprise", "Company", companyId, reason);
+    public List<CompanyDto> getPendingCompanies() {
+        try {
+            return companyServiceClient.getPendingCompanies();
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la récupération des entreprises en attente: " + e.getMessage());
+        }
+    }
+
+    public List<FreelancerDto> getAllFreelancers() {
+        try {
+            return freelancerServiceClient.getAllFreelancers();
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la récupération des freelances: " + e.getMessage());
+        }
     }
 
     public void suspendFreelancer(Long freelancerId, String reason) {

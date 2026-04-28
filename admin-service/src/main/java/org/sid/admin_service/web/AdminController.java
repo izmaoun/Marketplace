@@ -2,6 +2,9 @@ package org.sid.admin_service.web;
 
 import org.sid.admin_service.entities.Admin;
 import org.sid.admin_service.services.AdminService;
+import org.sid.admin_service.dto.CompanyDto;
+import org.sid.admin_service.dto.FreelancerDto;
+import java.util.List;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -29,15 +32,25 @@ public class AdminController {
         adminService.approveCompany(id);
     }
 
-    @PostMapping("/companies/{id}/reject")
-    public void rejectCompany(@PathVariable Long id, @RequestParam String reason) {
-        adminService.rejectCompany(id, reason);
+    @GetMapping("/companies/pending")
+    public List<CompanyDto> getPendingCompanies() {
+        return adminService.getPendingCompanies();
     }
 
-    @PostMapping("/companies/{id}/suspend")
-    public void suspendCompany(@PathVariable Long id, @RequestParam String reason) {
-        adminService.suspendCompany(id, reason);
+    @GetMapping("/freelancers")
+    public List<FreelancerDto> getAllFreelancers() {
+        return adminService.getAllFreelancers();
     }
+
+    @PostMapping("/companies/{id}/reject")
+    public CompanyDto rejectCompany(@PathVariable Long id, @RequestParam String reason) {
+        return adminService.rejectCompany(id, reason);
+    }
+
+//    @PostMapping("/companies/{id}/suspend")
+//    public void suspendCompany(@PathVariable Long id, @RequestParam String reason) {
+//        adminService.suspendCompany(id, reason);
+//    }
 
     @PostMapping("/freelancers/{id}/suspend")
     public void suspendFreelancer(@PathVariable Long id, @RequestParam String reason) {

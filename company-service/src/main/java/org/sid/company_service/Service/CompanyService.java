@@ -7,13 +7,19 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.sid.company_service.Service.dto.MissionRequest;
+import org.sid.company_service.Service.dto.MissionResponse;
+import org.springframework.http.ResponseEntity;
+
 @Service
 public class CompanyService {
 
     private final CompanyServiceRepository companyRep;
+    private final MissionServiceClient missionServiceClient;
 
-    public CompanyService(CompanyServiceRepository companyRep) {
+    public CompanyService(CompanyServiceRepository companyRep, MissionServiceClient missionServiceClient) {
         this.companyRep = companyRep;
+        this.missionServiceClient = missionServiceClient;
     }
 
 
@@ -84,5 +90,29 @@ public class CompanyService {
         return companyRep.findByKeycloakId(keycloakId)
                 .map(c -> c.getStatus() == CompanyStatus.Validated)
                 .orElse(false);
+    }
+
+    public MissionResponse createMission(MissionRequest mission) {
+        return missionServiceClient.createMission(mission);
+    }
+
+    public ResponseEntity<MissionResponse> updateMission(Long id, MissionRequest mission) {
+        return missionServiceClient.updateMission(id, mission);
+    }
+
+    public ResponseEntity<Void> deleteMission(Long id) {
+        return missionServiceClient.deleteMission(id);
+    }
+
+    public ResponseEntity<MissionResponse> publierMission(Long id) {
+        return missionServiceClient.publierMission(id);
+    }
+
+    public ResponseEntity<MissionResponse> demarrerMission(Long id) {
+        return missionServiceClient.demarrerMission(id);
+    }
+
+    public ResponseEntity<MissionResponse> cloturerMission(Long id) {
+        return missionServiceClient.cloturerMission(id);
     }
 }

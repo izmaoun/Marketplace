@@ -5,17 +5,19 @@ spring:
   application:
     name: company-service
   cloud:
-      config:
+    config:
+      enabled: false
+      import-check:
         enabled: false
-      consul:
-        enabled: false
+    consul:
+      enabled: false
   config:
-      import: ""
+    import: ""
   datasource:
-      url: ${SPRING_DATASOURCE_URL}
-      username: ${SPRING_DATASOURCE_USERNAME}
-      password: ${SPRING_DATASOURCE_PASSWORD}
-      Driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
@@ -23,4 +25,4 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 #spring.security.oauth2.resourceserver.jwt:
- # issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+#  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}

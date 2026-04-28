@@ -3,6 +3,8 @@ package org.sid.company_service.Controller;
 import lombok.RequiredArgsConstructor;
 import org.sid.company_service.Entity.Company;
 import org.sid.company_service.Service.CompanyService;
+import org.sid.company_service.Service.dto.MissionRequest;
+import org.sid.company_service.Service.dto.MissionResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,5 +65,38 @@ public class CompanyController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(companyService.rejectCompany(id, body.get("reason")));
+    }
+
+    // ── Missions ──
+    @PostMapping("/missions")
+    public ResponseEntity<MissionResponse> createMission(@RequestBody MissionRequest mission) {
+        return ResponseEntity.ok(companyService.createMission(mission));
+    }
+
+    @PutMapping("/missions/{id}")
+    public ResponseEntity<MissionResponse> updateMission(
+            @PathVariable Long id,
+            @RequestBody MissionRequest mission) {
+        return companyService.updateMission(id, mission);
+    }
+
+    @DeleteMapping("/missions/{id}")
+    public ResponseEntity<Void> deleteMission(@PathVariable Long id) {
+        return companyService.deleteMission(id);
+    }
+
+    @PostMapping("/missions/{id}/publier")
+    public ResponseEntity<MissionResponse> publierMission(@PathVariable Long id) {
+        return companyService.publierMission(id);
+    }
+
+    @PostMapping("/missions/{id}/demarrer")
+    public ResponseEntity<MissionResponse> demarrerMission(@PathVariable Long id) {
+        return companyService.demarrerMission(id);
+    }
+
+    @PostMapping("/missions/{id}/cloturer")
+    public ResponseEntity<MissionResponse> cloturerMission(@PathVariable Long id) {
+        return companyService.cloturerMission(id);
     }
 }
