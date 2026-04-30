@@ -1,14 +1,16 @@
 package org.sid.auth_service.DTO;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class FreelancerRegisterRequest {
-    private String firstName;
-    private String lastName;
-    private String email;
-    private int phone;
+    @NotBlank private String firstName;
+    @NotBlank private String lastName;
+    @NotBlank @Email private String email;
+    private String phone;          // changé de int à String
     private String summary;
-    private String password;
-    private String cvUrl; // Ex: Développeur Java, Designer UX
+    @NotBlank private String password;
+    private String cvUrl;
 }

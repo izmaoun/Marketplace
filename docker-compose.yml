@@ -1,18 +1,18 @@
 services:
   # ── WSO2 API Manager (Gateway + Management)
-#  wso2-am:
-#    image: wso2/wso2am:latest
-#    container_name: wso2-am
-#    ports:
-#      - "9443:9443" # Interface d'administration (Publisher/DevPortal)
-#      - "8243:8243" # Passerelle HTTPS (Gateway)
-#      - "8280:8280" # Passerelle HTTP (Gateway)
-#    environment:
-#      - NODE_IP=127.0.0.1
-#    networks:
-#      - backend
-#    depends_on:
-#      - keycloak
+  wso2-am:
+    image: wso2/wso2am:latest
+    container_name: wso2-am
+    ports:
+      - "9443:9443" # Interface d'administration (Publisher/DevPortal)
+      - "8243:8243" # Passerelle HTTPS (Gateway)
+      - "8280:8280" # Passerelle HTTP (Gateway)
+    environment:
+      - NODE_IP=127.0.0.1
+    networks:
+      - backend
+    depends_on:
+      - keycloak
 
   # ════════════════════════════════════════════════════════
   # INFRASTRUCTURE
@@ -66,7 +66,7 @@ services:
     environment:
       POSTGRES_DB: freelancer_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_freelancer_data:/var/lib/postgresql/data
     ports:
@@ -85,7 +85,7 @@ services:
     environment:
       POSTGRES_DB: company_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_company_data:/var/lib/postgresql/data
     ports:
@@ -246,7 +246,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-freelancer:5432/freelancer_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -263,7 +263,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-company:5432/company_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:

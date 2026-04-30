@@ -4,38 +4,19 @@ server:
 spring:
   application:
     name: auth-service
-
-  # DÉSACTIVER la configuration automatique de la base de données
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
-
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL}
-  realm: ${KEYCLOAK_REALM}
-  client-id: ${KEYCLOAK_CLIENT_ID}
-  client-secret: ${KEYCLOAK_CLIENT_SECRET}
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:b2b-platform}
+  client-id: ${KEYCLOAK_CLIENT_ID:admin-cli}
+  client-secret: ""
 
-# Healthcheck pour Docker
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      show-details: always
-
-# Logs
 logging:
   level:
     root: INFO
-    org.springframework.security: DEBUG
-    org.keycloak: DEBUG
+    org.sid.auth_service: DEBUG
+    org.keycloak: INFO
