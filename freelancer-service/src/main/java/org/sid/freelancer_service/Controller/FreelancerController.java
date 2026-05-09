@@ -91,6 +91,13 @@ public class FreelancerController {
         return ResponseEntity.ok(service.getMissionsByCompany(companyId));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<Freelancer> getMyProfile(@RequestParam String keycloakId) {
+        return service.getProfileByKeycloakId(keycloakId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
 //    @PostMapping("/missions")
 //    public ResponseEntity<MissionResponse> createMission(@RequestBody MissionRequest mission) {
 //        return ResponseEntity.ok(service.createMission(mission));

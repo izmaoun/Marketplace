@@ -15,6 +15,10 @@ public class Freelancer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Keycloak user ID — lié au compte d'authentification
+    @Column(unique = true, nullable = false)
+    private String keycloakId;
+
     private String firstName;
     private String lastName;
     private String email; // Utilisé pour lier avec l'utilisateur Keycloak

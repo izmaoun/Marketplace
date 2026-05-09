@@ -64,6 +64,10 @@ public class FreelancerService {
         return missionServiceClient.getMissionsByCompany(companyId);
     }
 
+    public Optional<Freelancer> getProfileByKeycloakId(String keycloakId) {
+        return repository.findByKeycloakId(keycloakId);
+    }
+
 //    public MissionResponse createMission(MissionRequest mission) {
 //        return missionServiceClient.createMission(mission);
 //    }
