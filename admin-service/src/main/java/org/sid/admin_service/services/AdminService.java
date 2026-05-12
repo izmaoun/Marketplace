@@ -106,6 +106,7 @@ public class AdminService {
 
     public void deleteCompany(Long companyId, String reason) {
         // TODO: Implémenter la logique de suppression
+
         logAction("Suppression d'entreprise", "Company", companyId, reason);
     }
 

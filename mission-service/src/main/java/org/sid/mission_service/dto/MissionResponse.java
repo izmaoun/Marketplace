@@ -1,8 +1,6 @@
 package org.sid.mission_service.dto;
 
 import lombok.Data;
-import org.sid.company_service.Service.dto.MissionStatus;
-import org.sid.company_service.Service.dto.WorkMode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
