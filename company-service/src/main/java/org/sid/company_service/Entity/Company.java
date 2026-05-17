@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.sid.company_service.Entity.CompanyStatus;
 
 import java.time.LocalDateTime;
 
@@ -20,8 +19,6 @@ public class Company {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Keycloak user ID — lié au compte d'authentification
-    // Récupéré automatiquement depuis jwt.getSubject()
     @Column(unique = true, nullable = false)
     private String keycloakId;
 
@@ -31,6 +28,14 @@ public class Company {
     @Column(nullable = false)
     private String companyName;
 
+    // ✅ Ajouté — envoyé par auth-service à l'inscription
+    @Column(unique = true, nullable = false)
+    private String siret;
+
+    // ✅ Ajouté — champs séparés (fix 4 auth-service)
+    private String contactFirstName;
+    private String contactLastName;
+
     private String companyAddress;
     private String companyPhone;
     private String companyFax;
@@ -39,9 +44,9 @@ public class Company {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private CompanyStatus status = CompanyStatus.Pending;  // PENDING par défaut
+    private CompanyStatus status = CompanyStatus.Pending;
 
-    private String rejectionReason;  // motif si rejeté par l'admin
+    private String rejectionReason;
 
     @CreationTimestamp
     @Column(updatable = false)

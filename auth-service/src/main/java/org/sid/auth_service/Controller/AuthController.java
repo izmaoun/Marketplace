@@ -3,6 +3,7 @@ package org.sid.auth_service.Controller;
 import org.sid.auth_service.DTO.AuthRequest;
 import org.sid.auth_service.DTO.FreelancerRegisterRequest;
 import org.sid.auth_service.DTO.CompanyRegisterRequest;
+import org.sid.auth_service.DTO.RefreshTokenRequest;
 import org.sid.auth_service.Service.AuthService;
 import org.sid.auth_service.Service.KeycloakService;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +38,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestParam String refreshToken) {
-        return keycloakService.refreshToken(refreshToken);
+    public ResponseEntity<?> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return keycloakService.refreshToken(request.getRefreshToken());
     }
 }

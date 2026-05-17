@@ -6,8 +6,10 @@ import org.sid.mission_service.entities.Mission;
 import org.sid.mission_service.entities.MissionStatus;
 import org.sid.mission_service.entities.WorkMode;
 import org.sid.mission_service.repositories.MissionRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,10 +51,20 @@ public class MissionService {
         });
     }
 
+    public Optional<Mission> updateMissionForCompany(Long id, Long companyId, Mission updated) {
+        assertMissionOwner(id, companyId);
+        return updateMission(id, updated);
+    }
+
     public boolean deleteMission(Long id) {
         if (!missionRepository.existsById(id)) return false;
         missionRepository.deleteById(id);
         return true;
+    }
+
+    public boolean deleteMissionForCompany(Long id, Long companyId) {
+        assertMissionOwner(id, companyId);
+        return deleteMission(id);
     }
 
     // ── Gestion des statuts ───────────────────────────────────────────────────
@@ -61,12 +73,35 @@ public class MissionService {
         return changerStatut(id, MissionStatus.PUBLIEE);
     }
 
+    public Optional<Mission> publierMissionForCompany(Long id, Long companyId) {
+        assertMissionOwner(id, companyId);
+        return publierMission(id);
+    }
+
     public Optional<Mission> demarrerMission(Long id) {
         return changerStatut(id, MissionStatus.EN_COURS);
     }
 
+    public Optional<Mission> demarrerMissionForCompany(Long id, Long companyId) {
+        assertMissionOwner(id, companyId);
+        return demarrerMission(id);
+    }
+
     public Optional<Mission> cloturerMission(Long id) {
         return changerStatut(id, MissionStatus.CLOTUREE);
+    }
+
+    public Optional<Mission> cloturerMissionForCompany(Long id, Long companyId) {
+        assertMissionOwner(id, companyId);
+        return cloturerMission(id);
+    }
+
+    private void assertMissionOwner(Long missionId, Long companyId) {
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mission not found"));
+        if (!companyId.equals(mission.getCompanyId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mission does not belong to this company");
+        }
     }
 
     private Optional<Mission> changerStatut(Long id, MissionStatus nouveauStatut) {

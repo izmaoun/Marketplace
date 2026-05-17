@@ -15,18 +15,22 @@ public class Freelancer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Keycloak user ID — lié au compte d'authentification
     @Column(unique = true, nullable = false)
-    private String keycloakId;
+    private String keycloakUserId; // L'identifiant de l'utilisateur cote Keycloak
 
+    @Column(nullable = false)
     private String firstName;
+
+    @Column(nullable = false)
     private String lastName;
-    private String email; // Utilisé pour lier avec l'utilisateur Keycloak
+
+    @Column(unique = true, nullable = false)
+    private String email;
+
     private String phone;
     private String summary;
     private String cvUrl;
-
-    // Suppression du champ password [cite: 21]
+    private String pfpUrl;
 
     @ElementCollection
     private List<String> skills;
@@ -38,7 +42,5 @@ public class Freelancer {
     private List<String> projects;
 
     @Column(name = "is_suspended", nullable = false)
-    private boolean isSuspended = false;
-
-    // Lombok @Data génère déjà les getters/setters pour isSuspended [cite: 24, 25, 26]
+    private boolean suspended = false;
 }

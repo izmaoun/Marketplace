@@ -44,9 +44,29 @@ public class MissionController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/{id}/company/{companyId}")
+    public ResponseEntity<Mission> updateMissionForCompany(
+            @PathVariable Long id,
+            @PathVariable Long companyId,
+            @RequestBody Mission mission) {
+        return missionService.updateMissionForCompany(id, companyId, mission)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMission(@PathVariable Long id) {
         if (!missionService.deleteMission(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/company/{companyId}")
+    public ResponseEntity<Void> deleteMissionForCompany(
+            @PathVariable Long id,
+            @PathVariable Long companyId) {
+        if (!missionService.deleteMissionForCompany(id, companyId)) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.noContent().build();
@@ -61,6 +81,15 @@ public class MissionController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/{id}/company/{companyId}/publier")
+    public ResponseEntity<Mission> publierMissionForCompany(
+            @PathVariable Long id,
+            @PathVariable Long companyId) {
+        return missionService.publierMissionForCompany(id, companyId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/{id}/demarrer")
     public ResponseEntity<Mission> demarrerMission(@PathVariable Long id) {
         return missionService.demarrerMission(id)
@@ -68,9 +97,27 @@ public class MissionController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/{id}/company/{companyId}/demarrer")
+    public ResponseEntity<Mission> demarrerMissionForCompany(
+            @PathVariable Long id,
+            @PathVariable Long companyId) {
+        return missionService.demarrerMissionForCompany(id, companyId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/{id}/cloturer")
     public ResponseEntity<Mission> cloturerMission(@PathVariable Long id) {
         return missionService.cloturerMission(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/company/{companyId}/cloturer")
+    public ResponseEntity<Mission> cloturerMissionForCompany(
+            @PathVariable Long id,
+            @PathVariable Long companyId) {
+        return missionService.cloturerMissionForCompany(id, companyId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

@@ -58,7 +58,6 @@ public class AdminService {
 
     // Méthodes de gestion des comptes
     public void approveCompany(Long companyId) {
-        // TODO: Implémenter la logique d'approbation d'une entreprise (ex: appel à company-service)
         try {
             companyServiceClient.validateCompany(companyId);
             logAction("Approbation d'entreprise", "Company", companyId, null);

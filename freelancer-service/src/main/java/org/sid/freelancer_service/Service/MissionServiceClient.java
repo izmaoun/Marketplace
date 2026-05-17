@@ -1,8 +1,7 @@
 package org.sid.freelancer_service.Service;
 
-import org.sid.freelancer_service.Service.dto.MissionRequest;
-import org.sid.freelancer_service.Service.dto.MissionResponse;
-import org.sid.freelancer_service.Service.dto.WorkMode;
+import org.sid.freelancer_service.DTO.MissionResponse;
+import org.sid.freelancer_service.DTO.WorkMode;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
