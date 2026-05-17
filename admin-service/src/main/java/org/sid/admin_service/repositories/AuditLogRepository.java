@@ -2,9 +2,9 @@ package org.sid.admin_service.repositories;
 
 import org.sid.admin_service.entities.AuditLog;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
+import org.springframework.stereotype.Repository;
 
-@RepositoryRestResource
+@Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 }
 

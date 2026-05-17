@@ -39,7 +39,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak_db
@@ -48,6 +48,9 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin123
       KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     ports:
       - "8080:8080"
     depends_on:
@@ -120,6 +123,7 @@ services:
   postgres-application:
     image: postgres:15
     container_name: postgres-application
+    profiles: ["future"]
     environment:
       POSTGRES_DB: application_db
       POSTGRES_USER: application_user
@@ -156,6 +160,7 @@ services:
   postgres-payment:
     image: postgres:15
     container_name: postgres-payment
+    profiles: ["future"]
     environment:
       POSTGRES_DB: payment_db
       POSTGRES_USER: payment_user
@@ -173,6 +178,7 @@ services:
   postgres-scoring:
     image: postgres:15
     container_name: postgres-scoring
+    profiles: ["future"]
     environment:
       POSTGRES_DB: scoring_db
       POSTGRES_USER: scoring_user
@@ -190,6 +196,7 @@ services:
   postgres-assessment:
     image: postgres:15
     container_name: postgres-assessment
+    profiles: ["future"]
     environment:
       POSTGRES_DB: assessment_db
       POSTGRES_USER: assessment_user
@@ -208,6 +215,7 @@ services:
   mongodb-messaging:
     image: mongo:7
     container_name: mongodb-messaging
+    profiles: ["future"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: messaging_user
       MONGO_INITDB_ROOT_PASSWORD: messaging_secret
@@ -235,10 +243,20 @@ services:
     environment:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
-      KEYCLOAK_CLIENT_ID: auth-service
-      KEYCLOAK_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET}  # ← Gardez votre variable
+      # Variables pour le client d'administration (auth-service)
+      KEYCLOAK_ADMIN_CLIENT_ID: auth-service # Renommé
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${AUTH_SERVICE_CLIENT_SECRET}
+
+      # Variables pour le client utilisateur (b2b-app-client)
+      KEYCLOAK_USER_CLIENT_ID: b2b-app-client
+      KEYCLOAK_USER_CLIENT_SECRET: ${B2B_APP_CLIENT_SECRET} # <<< NOUVELLE VARIABLE D'ENVIRONNEMENT ICI
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       keycloak:
+        condition: service_started
+      freelancer-service:
+        condition: service_started
+      company-service:
         condition: service_started
     networks:
       - backend
@@ -254,7 +272,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
+      keycloak:
+        condition: service_started
       postgres-freelancer:
         condition: service_healthy
     networks:
@@ -271,7 +292,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
+      keycloak:
+        condition: service_started
       postgres-company:
         condition: service_healthy
     networks:
@@ -288,7 +312,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
+      keycloak:
+        condition: service_started
       postgres-mission:
         condition: service_healthy
     networks:
@@ -297,6 +324,7 @@ services:
   application-service:
     build: ./application-service
     container_name: application-service
+    profiles: ["future"]
     ports:
       - "8085:8085"
     environment:
@@ -327,6 +355,8 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
+      keycloak:
+        condition: service_started
       postgres-admin:
         condition: service_healthy
     networks:
@@ -335,6 +365,7 @@ services:
   messaging-service:
     build: ./messaging-service
     container_name: messaging-service
+    profiles: ["future"]
     ports:
       - "8087:8087"
     environment:
@@ -362,13 +393,14 @@ services:
   payment-service:
     build: ./payment-service
     container_name: payment-service
+    profiles: ["future"]
     ports:
       - "8088:8088"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
       SPRING_DATASOURCE_USERNAME: payment_user
       SPRING_DATASOURCE_PASSWORD: payment_secret
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -380,6 +412,7 @@ services:
   scoring-service:
     build: ./scoring-service
     container_name: scoring-service
+    profiles: ["future"]
     ports:
       - "8089:8089"
     environment:
@@ -397,6 +430,7 @@ services:
   assessment-service:
     build: ./assessment-service
     container_name: assessment-service
+    profiles: ["future"]
     ports:
       - "8090:8090"
     environment:

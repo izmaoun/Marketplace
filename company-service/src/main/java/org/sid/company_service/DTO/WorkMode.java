@@ -1,4 +1,4 @@
-package org.sid.company_service.Service.dto;
+package org.sid.company_service.DTO;
 
 public enum WorkMode {
     REMOTE,

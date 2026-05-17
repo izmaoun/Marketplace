@@ -1,4 +1,4 @@
-package org.sid.freelancer_service.Service.dto;
+package org.sid.freelancer_service.DTO;
 
 public enum MissionStatus {
     BROUILLON,

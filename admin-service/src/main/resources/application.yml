@@ -23,8 +23,8 @@ spring:
     show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-#spring.security.oauth2.resourceserver.jwt:
-#  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+spring.security.oauth2.resourceserver.jwt:
+  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
 
 logging:
   level:

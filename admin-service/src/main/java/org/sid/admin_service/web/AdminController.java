@@ -5,10 +5,12 @@ import org.sid.admin_service.services.AdminService;
 import org.sid.admin_service.dto.CompanyDto;
 import org.sid.admin_service.dto.FreelancerDto;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final AdminService adminService;

@@ -1,4 +1,4 @@
-package org.sid.freelancer_service.Service.dto;
+package org.sid.company_service.DTO;
 
 import lombok.Data;
 
@@ -17,6 +17,6 @@ public class MissionRequest {
     private WorkMode workMode;
 
     public MissionRequest() {
-
     }
 }
+

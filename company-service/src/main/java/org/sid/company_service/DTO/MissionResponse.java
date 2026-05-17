@@ -1,8 +1,6 @@
-package org.sid.freelancer_service.Service.dto;
+package org.sid.company_service.DTO;
 
 import lombok.Data;
-import org.sid.freelancer_service.Service.dto.MissionStatus;
-import org.sid.freelancer_service.Service.dto.WorkMode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

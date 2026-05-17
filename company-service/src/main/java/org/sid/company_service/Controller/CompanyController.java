@@ -1,15 +1,17 @@
 package org.sid.company_service.Controller;
 
 import lombok.RequiredArgsConstructor;
+import org.sid.company_service.DTO.*;
 import org.sid.company_service.Entity.Company;
 import org.sid.company_service.Service.CompanyService;
-import org.sid.company_service.Service.dto.MissionRequest;
-import org.sid.company_service.Service.dto.MissionResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/companies")
@@ -20,33 +22,41 @@ public class CompanyController {
 
     // ── Inscription : créer une entreprise ──
     @PostMapping
-    public ResponseEntity<Company> createCompany(@RequestBody Company company) {
-        return ResponseEntity.ok(companyService.saveCompany(company));
+    public ResponseEntity<CompanyResponse> createCompany(@RequestBody CompanyRequest request) {
+        return ResponseEntity.ok(companyService.saveCompanyFromAuth(request));
     }
 
+
     @GetMapping
-    public ResponseEntity<List<Company>> getAllCompanies() {
-        return ResponseEntity.ok(companyService.getAllCompanies());
+    public ResponseEntity<List<CompanyPublicDTO>> getAllCompanies() {
+        return ResponseEntity.ok(
+                companyService.getAllCompanies().stream()
+                        .map(c -> new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine()))
+                        .collect(Collectors.toList())
+        );
     }
 
     // ── Mon entreprise (jwt oho)
     @GetMapping("/me")
-    public ResponseEntity<Company> getMyCompany(@RequestParam String keycloakId) {
+    public ResponseEntity<Company> getMyCompany(@AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
         return ResponseEntity.ok(companyService.getCompanyByKeycloakId(keycloakId));
     }
 
     @PutMapping("/me")
     public ResponseEntity<Company> updateMyCompany(
-            @RequestParam String keycloakId,
-            @RequestBody Company updated) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody CompanyMeDTO updated) {
+        String keycloakId = jwt.getSubject();
         Company mine = companyService.getCompanyByKeycloakId(keycloakId);
         return ResponseEntity.ok(companyService.updateCompany(mine.getId(), updated));
     }
 
     // ── Profil public ──
     @GetMapping("/{id}")
-    public ResponseEntity<Company> getCompany(@PathVariable Long id) {
-        return ResponseEntity.ok(companyService.getCompanyById(id));
+    public ResponseEntity<CompanyPublicDTO> getCompany(@PathVariable Long id) {
+        Company c = companyService.getCompanyById(id);
+        return ResponseEntity.ok(new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine()));
     }
 
     // ── Admin ──
@@ -69,34 +79,45 @@ public class CompanyController {
 
     // ── Missions ──
     @PostMapping("/missions")
-    public ResponseEntity<MissionResponse> createMission(@RequestBody MissionRequest mission) {
-        return ResponseEntity.ok(companyService.createMission(mission));
+    public ResponseEntity<MissionResponse> createMission(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody MissionRequest mission) {
+        return ResponseEntity.ok(companyService.createMission(jwt.getSubject(), mission));
     }
 
     @PutMapping("/missions/{id}")
     public ResponseEntity<MissionResponse> updateMission(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id,
             @RequestBody MissionRequest mission) {
-        return companyService.updateMission(id, mission);
+        return companyService.updateMission(jwt.getSubject(), id, mission);
     }
 
     @DeleteMapping("/missions/{id}")
-    public ResponseEntity<Void> deleteMission(@PathVariable Long id) {
-        return companyService.deleteMission(id);
+    public ResponseEntity<Void> deleteMission(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id) {
+        return companyService.deleteMission(jwt.getSubject(), id);
     }
 
     @PostMapping("/missions/{id}/publier")
-    public ResponseEntity<MissionResponse> publierMission(@PathVariable Long id) {
-        return companyService.publierMission(id);
+    public ResponseEntity<MissionResponse> publierMission(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id) {
+        return companyService.publierMission(jwt.getSubject(), id);
     }
 
     @PostMapping("/missions/{id}/demarrer")
-    public ResponseEntity<MissionResponse> demarrerMission(@PathVariable Long id) {
-        return companyService.demarrerMission(id);
+    public ResponseEntity<MissionResponse> demarrerMission(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id) {
+        return companyService.demarrerMission(jwt.getSubject(), id);
     }
 
     @PostMapping("/missions/{id}/cloturer")
-    public ResponseEntity<MissionResponse> cloturerMission(@PathVariable Long id) {
-        return companyService.cloturerMission(id);
+    public ResponseEntity<MissionResponse> cloturerMission(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id) {
+        return companyService.cloturerMission(jwt.getSubject(), id);
     }
 }
