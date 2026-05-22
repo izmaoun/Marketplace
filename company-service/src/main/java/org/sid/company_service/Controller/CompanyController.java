@@ -77,6 +77,19 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.rejectCompany(id, body.get("reason")));
     }
 
+    @PutMapping("/admin/{id}/suspend")
+    public ResponseEntity<Company> suspend(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(companyService.suspendCompany(id, body.get("reason")));
+    }
+
+    @DeleteMapping("/admin/{id}")
+    public ResponseEntity<Void> deleteCompany(@PathVariable Long id) {
+        companyService.deleteCompany(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── Missions ──
     @PostMapping("/missions")
     public ResponseEntity<MissionResponse> createMission(

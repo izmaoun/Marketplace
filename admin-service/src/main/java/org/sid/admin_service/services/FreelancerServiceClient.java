@@ -12,7 +12,7 @@ import java.util.List;
 @FeignClient(name = "freelancer-service", url = "http://freelancer-service:8082")
 public interface FreelancerServiceClient {
 
-    @GetMapping("/api/freelances")
+    @GetMapping("/api/freelances/admin")
     List<FreelancerDto> getAllFreelancers();
 
     @PostMapping("/api/freelances/{id}/suspend")

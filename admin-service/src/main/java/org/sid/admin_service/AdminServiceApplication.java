@@ -24,7 +24,6 @@ public class AdminServiceApplication {
 			if (adminRepository.count() == 0) {
 				Admin admin = Admin.builder()
 					.username("admin")
-					.password("admin123") // À changer pour un vrai mot de passe sécurisé
 					.email("admin@admin.com")
 					.build();
 				adminRepository.save(admin);

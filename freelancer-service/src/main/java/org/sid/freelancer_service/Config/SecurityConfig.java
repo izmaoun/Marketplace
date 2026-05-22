@@ -37,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/freelances/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/freelances/me").authenticated()
                         // Admin uniquement
-                        .requestMatchers(HttpMethod.GET, "/api/freelances/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/freelances/admin", "/api/freelances/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/freelances/{id:\\d+}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/freelances/{id:\\d+}/suspend").hasRole("ADMIN")
                         // Tout le reste = interdit

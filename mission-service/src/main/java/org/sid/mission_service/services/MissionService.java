@@ -27,11 +27,11 @@ public class MissionService {
     // ── CRUD de base ──────────────────────────────────────────────────────────
 
     public List<Mission> getAllMissions() {
-        return missionRepository.findAll();
+        return missionRepository.findByStatus(MissionStatus.PUBLIEE);
     }
 
     public Optional<Mission> getMissionById(Long id) {
-        return missionRepository.findById(id);
+        return missionRepository.findByIdAndStatus(id, MissionStatus.PUBLIEE);
     }
 
     public Mission createMission(Mission mission) {
@@ -106,15 +106,31 @@ public class MissionService {
 
     private Optional<Mission> changerStatut(Long id, MissionStatus nouveauStatut) {
         return missionRepository.findById(id).map(mission -> {
+            validateStatusTransition(mission.getStatus(), nouveauStatut);
             mission.setStatus(nouveauStatut);
             return missionRepository.save(mission);
         });
     }
 
+    private void validateStatusTransition(MissionStatus current, MissionStatus next) {
+        boolean valid = switch (current) {
+            case BROUILLON -> next == MissionStatus.PUBLIEE;
+            case PUBLIEE -> next == MissionStatus.EN_COURS;
+            case EN_COURS -> next == MissionStatus.CLOTUREE;
+            case CLOTUREE -> false;
+        };
+        if (!valid) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid mission status transition: " + current + " -> " + next
+            );
+        }
+    }
+
     // ── Requêtes métier ───────────────────────────────────────────────────────
 
     public List<Mission> getMissionsByCompany(Long companyId) {
-        return missionRepository.findByCompanyId(companyId);
+        return missionRepository.findByCompanyIdAndStatus(companyId, MissionStatus.PUBLIEE);
     }
 
     public List<Mission> getMissionsPublished() {

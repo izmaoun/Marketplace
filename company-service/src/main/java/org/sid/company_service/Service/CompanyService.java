@@ -113,6 +113,13 @@ public class CompanyService {
         return companyRep.save(company);
     }
 
+    public Company suspendCompany(Long id, String reason) {
+        Company company = getCompanyById(id);
+        company.setStatus(CompanyStatus.Suspended);
+        company.setRejectionReason(reason);
+        return companyRep.save(company);
+    }
+
     // ── Missions ──────────────────────────────────────────────────────────────
     public MissionResponse createMission(String keycloakId, MissionRequest mission) {
         Company company = getCompanyByKeycloakId(keycloakId);

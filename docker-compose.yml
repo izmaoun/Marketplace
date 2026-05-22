@@ -69,7 +69,7 @@ services:
     environment:
       POSTGRES_DB: freelancer_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_freelancer_data:/var/lib/postgresql/data
     ports:
@@ -88,7 +88,7 @@ services:
     environment:
       POSTGRES_DB: company_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_company_data:/var/lib/postgresql/data
     ports:
@@ -107,7 +107,7 @@ services:
     environment:
       POSTGRES_DB: mission_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_mission_data:/var/lib/postgresql/data
     ports:
@@ -123,7 +123,6 @@ services:
   postgres-application:
     image: postgres:15
     container_name: postgres-application
-    profiles: ["future"]
     environment:
       POSTGRES_DB: application_db
       POSTGRES_USER: application_user
@@ -144,7 +143,7 @@ services:
     environment:
       POSTGRES_DB: admin_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: fifa2014
+      POSTGRES_PASSWORD: MEDWALIDKH1st.
     volumes:
       - postgres_admin_data:/var/lib/postgresql/data
     ports:
@@ -215,7 +214,6 @@ services:
   mongodb-messaging:
     image: mongo:7
     container_name: mongodb-messaging
-    profiles: ["future"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: messaging_user
       MONGO_INITDB_ROOT_PASSWORD: messaging_secret
@@ -269,7 +267,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-freelancer:5432/freelancer_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
@@ -289,7 +287,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-company:5432/company_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
@@ -309,7 +307,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-mission:5432/mission_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
@@ -324,7 +322,6 @@ services:
   application-service:
     build: ./application-service
     container_name: application-service
-    profiles: ["future"]
     ports:
       - "8085:8085"
     environment:
@@ -334,6 +331,8 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
+      keycloak:
+        condition: service_started
       postgres-application:
         condition: service_healthy
     networks:
@@ -351,7 +350,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: fifa2014
+      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -365,7 +364,6 @@ services:
   messaging-service:
     build: ./messaging-service
     container_name: messaging-service
-    profiles: ["future"]
     ports:
       - "8087:8087"
     environment:
@@ -378,10 +376,12 @@ services:
       SPRING_CLOUD_CONFIG_IMPORT_CHECK_ENABLED: "false"
       SPRING_CLOUD_CONSUL_ENABLED: "false"                          # ← ajoute
       SPRING_CLOUD_CONSUL_CONFIG_ENABLED: "false"
-      APP_SECURITY_ENABLED: "false"
+      APP_SECURITY_ENABLED: "true"
     depends_on:
       mongodb-messaging:
         condition: service_healthy   # ← était service_started, maintenant service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - backend
     restart: on-failure

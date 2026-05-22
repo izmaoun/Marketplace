@@ -1,11 +1,19 @@
 package org.sid.freelancer_service.Controller;
 
 import org.sid.freelancer_service.Entity.Freelancer;
+import org.sid.freelancer_service.DTO.FreelancerAdminDTO;
+import org.sid.freelancer_service.DTO.FreelancerProfileDTO;
+import org.sid.freelancer_service.DTO.FreelancerRequest;
+import org.sid.freelancer_service.DTO.FreelancerResponse;
+import org.sid.freelancer_service.DTO.FreelancerUpdateRequest;
+import org.sid.freelancer_service.DTO.MissionResponse;
+import org.sid.freelancer_service.DTO.WorkMode;
 import org.sid.freelancer_service.Service.FreelancerService;
-import org.sid.freelancer_service.Service.dto.MissionRequest;
-import org.sid.freelancer_service.Service.dto.MissionResponse;
-import org.sid.freelancer_service.Service.dto.WorkMode;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,25 +28,34 @@ public class FreelancerController {
     }
 
     @GetMapping
-    public List<Freelancer> getAllProfiles() {
-        return service.getAllProfiles();
+    public Page<FreelancerProfileDTO> getAllProfiles(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return service.getAllProfiles(page, size).map(service::toProfileDto);
     }
 
     @GetMapping("/{id:\\d+}")
-    public ResponseEntity<Freelancer> getProfile(@PathVariable Long id) {
+    public ResponseEntity<FreelancerProfileDTO> getProfile(@PathVariable Long id) {
         return service.getProfile(id)
+                .map(service::toProfileDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/admin")
+    public List<FreelancerAdminDTO> getProfilesForAdmin() {
+        return service.getAllProfilesForAdmin();
+    }
+
     @PostMapping
-    public Freelancer createProfile(@RequestBody Freelancer profile) {
-        return service.saveProfile(profile);
+    @ResponseStatus(HttpStatus.CREATED)
+    public FreelancerResponse createProfile(@RequestBody FreelancerRequest request) {
+        return service.createFreelancer(request);
     }
 
     @PutMapping("/{id:\\d+}")
     public ResponseEntity<Freelancer> updateProfile(@PathVariable Long id, @RequestBody Freelancer profile) {
-        if (!service.getProfile(id).isPresent()) {
+        if (!service.profileExists(id)) {
             return ResponseEntity.notFound().build();
         }
         profile.setId(id);
@@ -47,7 +64,7 @@ public class FreelancerController {
 
     @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<Void> deleteProfile(@PathVariable Long id) {
-        if (!service.getProfile(id).isPresent()) {
+        if (!service.profileExists(id)) {
             return ResponseEntity.notFound().build();
         }
         service.deleteProfile(id);
@@ -56,7 +73,7 @@ public class FreelancerController {
 
     @PostMapping("/{id:\\d+}/suspend")
     public ResponseEntity<Void> suspendProfile(@PathVariable Long id) {
-        if (!service.getProfile(id).isPresent()) {
+        if (!service.profileExists(id)) {
             return ResponseEntity.notFound().build();
         }
         service.suspendProfile(id);
@@ -92,14 +109,16 @@ public class FreelancerController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Freelancer> getMyProfile(@RequestParam String keycloakId) {
-        return service.getProfileByKeycloakId(keycloakId)
+    public ResponseEntity<Freelancer> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
+        return service.getProfileByKeycloakId(jwt.getSubject())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-//    @PostMapping("/missions")
-//    public ResponseEntity<MissionResponse> createMission(@RequestBody MissionRequest mission) {
-//        return ResponseEntity.ok(service.createMission(mission));
-//    }
+    @PutMapping("/me")
+    public ResponseEntity<Freelancer> updateMyProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody FreelancerUpdateRequest request) {
+        return ResponseEntity.ok(service.updateMyProfile(jwt.getSubject(), request));
+    }
 }

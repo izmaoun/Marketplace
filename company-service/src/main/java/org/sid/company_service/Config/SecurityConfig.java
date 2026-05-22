@@ -27,11 +27,11 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/companies").hasRole("INTERNAL")
-                        .requestMatchers(HttpMethod.GET, "/api/companies/{id}").permitAll() // profil public
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/api/companies/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/companies/me/**").authenticated()
                         .requestMatchers("/api/companies/missions/**").hasRole("COMPANY")
+                        .requestMatchers(HttpMethod.GET, "/api/companies/{id:\\d+}").permitAll() // profil public
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

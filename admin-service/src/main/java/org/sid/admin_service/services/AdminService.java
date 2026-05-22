@@ -1,11 +1,15 @@
 package org.sid.admin_service.services;
 
-import org.sid.admin_service.entities.Admin;
-import org.sid.admin_service.repositories.AdminRepository;
-import org.sid.admin_service.entities.AuditLog;
-import org.sid.admin_service.repositories.AuditLogRepository;
+import org.sid.admin_service.dto.AdminProfileDto;
 import org.sid.admin_service.dto.CompanyDto;
 import org.sid.admin_service.dto.FreelancerDto;
+import org.sid.admin_service.entities.Admin;
+import org.sid.admin_service.entities.AuditLog;
+import org.sid.admin_service.repositories.AdminRepository;
+import org.sid.admin_service.repositories.AuditLogRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,40 +27,39 @@ public class AdminService {
     private final FreelancerServiceClient freelancerServiceClient;
     private final CompanyServiceClient companyServiceClient;
 
-    public AdminService(AdminRepository adminRepository, AuditLogRepository auditLogRepository, FreelancerServiceClient freelancerServiceClient, CompanyServiceClient companyServiceClient) {
+    public AdminService(AdminRepository adminRepository,
+                        AuditLogRepository auditLogRepository,
+                        FreelancerServiceClient freelancerServiceClient,
+                        CompanyServiceClient companyServiceClient) {
         this.adminRepository = adminRepository;
         this.auditLogRepository = auditLogRepository;
         this.freelancerServiceClient = freelancerServiceClient;
-        this.companyServiceClient=companyServiceClient;
+        this.companyServiceClient = companyServiceClient;
     }
 
-    // Méthodes pour gérer l'administrateur unique
     public Admin getAdmin() {
         Admin admin = adminRepository.findAll().stream().findFirst().orElse(null);
         if (admin == null) {
-            // Création par défaut de l'admin unique s'il n'existe pas
             admin = Admin.builder()
-                    .username("admin")
-                    .password("admin") // Mot de passe par défaut
-                    .email("admin@marketplace.com")
+                    .username(currentAdminUsername())
+                    .email(currentAdminEmail())
                     .build();
             admin = adminRepository.save(admin);
         }
         return admin;
     }
 
-    public Admin updateAdmin(Admin admin) {
-        Admin existing = getAdmin();
-        if (existing != null) {
-            existing.setUsername(admin.getUsername());
-            existing.setPassword(admin.getPassword());
-            existing.setEmail(admin.getEmail());
-            return adminRepository.save(existing);
-        }
-        return null;
+    public AdminProfileDto getAdminProfile() {
+        return toProfileDto(getAdmin());
     }
 
-    // Méthodes de gestion des comptes
+    public AdminProfileDto updateAdmin(AdminProfileDto admin) {
+        Admin existing = getAdmin();
+        existing.setUsername(admin.getUsername());
+        existing.setEmail(admin.getEmail());
+        return toProfileDto(adminRepository.save(existing));
+    }
+
     public void approveCompany(Long companyId) {
         try {
             companyServiceClient.validateCompany(companyId);
@@ -82,7 +85,7 @@ public class AdminService {
         try {
             return companyServiceClient.getPendingCompanies();
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la récupération des entreprises en attente: " + e.getMessage());
+            throw new RuntimeException("Erreur lors de la recuperation des entreprises en attente: " + e.getMessage());
         }
     }
 
@@ -90,7 +93,7 @@ public class AdminService {
         try {
             return freelancerServiceClient.getAllFreelancers();
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la récupération des freelances: " + e.getMessage());
+            throw new RuntimeException("Erreur lors de la recuperation des freelances: " + e.getMessage());
         }
     }
 
@@ -104,9 +107,24 @@ public class AdminService {
     }
 
     public void deleteCompany(Long companyId, String reason) {
-        // TODO: Implémenter la logique de suppression
+        try {
+            companyServiceClient.deleteCompany(companyId);
+            logAction("Suppression d'entreprise", "Company", companyId, reason);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la suppression d'entreprise: " + e.getMessage());
+        }
+    }
 
-        logAction("Suppression d'entreprise", "Company", companyId, reason);
+    public CompanyDto suspendCompany(Long companyId, String reason) {
+        try {
+            Map<String, String> body = new HashMap<>();
+            body.put("reason", reason);
+            CompanyDto result = companyServiceClient.suspendCompany(companyId, body);
+            logAction("Suspension d'entreprise", "Company", companyId, reason);
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la suspension d'entreprise: " + e.getMessage());
+        }
     }
 
     public void deleteFreelancer(Long freelancerId, String reason) {
@@ -118,13 +136,13 @@ public class AdminService {
         }
     }
 
-    private void logAction(String action, String targetType, Long targetId, String reason) {
-        // On récupère l'admin unique pour le journal d'audit
-        Admin admin = getAdmin();
-        String adminUsername = admin != null ? admin.getUsername() : "admin";
+    public List<AuditLog> getAuditLogs() {
+        return auditLogRepository.findAll();
+    }
 
+    private void logAction(String action, String targetType, Long targetId, String reason) {
         AuditLog auditLog = AuditLog.builder()
-                .adminUsername(adminUsername)
+                .adminUsername(currentAdminUsername())
                 .action(action)
                 .targetAccountType(targetType)
                 .targetAccountId(targetId)
@@ -132,5 +150,41 @@ public class AdminService {
                 .timestamp(LocalDateTime.now())
                 .build();
         auditLogRepository.save(auditLog);
+    }
+
+    private AdminProfileDto toProfileDto(Admin admin) {
+        return new AdminProfileDto(admin.getId(), admin.getUsername(), admin.getEmail());
+    }
+
+    private String currentAdminUsername() {
+        Jwt jwt = currentJwt();
+        if (jwt == null) {
+            return "unknown-admin";
+        }
+        String username = jwt.getClaimAsString("preferred_username");
+        if (username != null && !username.isBlank()) {
+            return username;
+        }
+        String email = jwt.getClaimAsString("email");
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        return jwt.getSubject();
+    }
+
+    private String currentAdminEmail() {
+        Jwt jwt = currentJwt();
+        if (jwt == null) {
+            return null;
+        }
+        return jwt.getClaimAsString("email");
+    }
+
+    private Jwt currentJwt() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            return jwt;
+        }
+        return null;
     }
 }

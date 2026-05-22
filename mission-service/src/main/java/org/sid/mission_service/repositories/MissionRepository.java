@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface MissionRepository extends JpaRepository<Mission, Long> {
 
@@ -16,6 +17,10 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
 
     // Missions par statut
     List<Mission> findByStatus(MissionStatus status);
+
+    Optional<Mission> findByIdAndStatus(Long id, MissionStatus status);
+
+    List<Mission> findByCompanyIdAndStatus(Long companyId, MissionStatus status);
 
     // Missions publiées filtrables par compétence et mode de travail
     @Query("SELECT m FROM Mission m JOIN m.requiredSkills s " +

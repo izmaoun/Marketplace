@@ -16,11 +16,17 @@ spring:
         enabled: false
         import-check:
           enabled: false
-  mongodb:
+  data:
+    mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/messaging_db}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}
 
 app:
   websocket:
     allowed-origins: ${WS_ALLOWED_ORIGINS:*}
   security:
-    enabled: false
+    enabled: ${APP_SECURITY_ENABLED:true}

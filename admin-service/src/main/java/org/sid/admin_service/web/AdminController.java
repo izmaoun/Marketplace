@@ -1,7 +1,8 @@
 package org.sid.admin_service.web;
 
-import org.sid.admin_service.entities.Admin;
+import org.sid.admin_service.entities.AuditLog;
 import org.sid.admin_service.services.AdminService;
+import org.sid.admin_service.dto.AdminProfileDto;
 import org.sid.admin_service.dto.CompanyDto;
 import org.sid.admin_service.dto.FreelancerDto;
 import java.util.List;
@@ -20,12 +21,12 @@ public class AdminController {
     }
 
     @GetMapping
-    public Admin getAdmin() {
-        return adminService.getAdmin();
+    public AdminProfileDto getAdmin() {
+        return adminService.getAdminProfile();
     }
 
     @PutMapping
-    public Admin updateAdmin(@RequestBody Admin admin) {
+    public AdminProfileDto updateAdmin(@RequestBody AdminProfileDto admin) {
         return adminService.updateAdmin(admin);
     }
 
@@ -49,10 +50,10 @@ public class AdminController {
         return adminService.rejectCompany(id, reason);
     }
 
-//    @PostMapping("/companies/{id}/suspend")
-//    public void suspendCompany(@PathVariable Long id, @RequestParam String reason) {
-//        adminService.suspendCompany(id, reason);
-//    }
+    @PostMapping("/companies/{id}/suspend")
+    public CompanyDto suspendCompany(@PathVariable Long id, @RequestParam String reason) {
+        return adminService.suspendCompany(id, reason);
+    }
 
     @PostMapping("/freelancers/{id}/suspend")
     public void suspendFreelancer(@PathVariable Long id, @RequestParam String reason) {
@@ -67,5 +68,10 @@ public class AdminController {
     @DeleteMapping("/freelancers/{id}")
     public void deleteFreelancer(@PathVariable Long id, @RequestParam String reason) {
         adminService.deleteFreelancer(id, reason);
+    }
+
+    @GetMapping("/audit")
+    public List<AuditLog> getAuditLogs() {
+        return adminService.getAuditLogs();
     }
 }

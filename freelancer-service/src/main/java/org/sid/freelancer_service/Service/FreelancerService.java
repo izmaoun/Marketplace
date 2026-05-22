@@ -2,6 +2,9 @@ package org.sid.freelancer_service.Service;
 
 import org.sid.freelancer_service.DTO.FreelancerRequest;
 import org.sid.freelancer_service.DTO.FreelancerResponse;
+import org.sid.freelancer_service.DTO.FreelancerAdminDTO;
+import org.sid.freelancer_service.DTO.FreelancerProfileDTO;
+import org.sid.freelancer_service.DTO.FreelancerUpdateRequest;
 import org.sid.freelancer_service.DTO.MissionResponse;
 import org.sid.freelancer_service.DTO.WorkMode;
 import org.sid.freelancer_service.Entity.Freelancer;
@@ -35,21 +38,51 @@ public class FreelancerService {
     // ✅ Remplace getAllProfiles() — paginé, trié par lastName
     public Page<Freelancer> getAllProfiles(int page, int size) {
         int safeSize = Math.min(size, MAX_PAGE_SIZE);
-        return repository.findAll(
+        return repository.findBySuspendedFalse(
                 PageRequest.of(page, safeSize, Sort.by("lastName").ascending())
         );
+    }
+
+    public List<FreelancerAdminDTO> getAllProfilesForAdmin() {
+        return repository.findAll().stream()
+                .map(this::toAdminDto)
+                .toList();
     }
 
     public Freelancer findByKeycloakUserId(String keycloakUserId) {
         return repository.findByKeycloakUserId(keycloakUserId);
     }
 
+    public Optional<Freelancer> getProfileByKeycloakId(String keycloakUserId) {
+        return Optional.ofNullable(repository.findByKeycloakUserId(keycloakUserId));
+    }
+
     public Optional<Freelancer> getProfile(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndSuspendedFalse(id);
+    }
+
+    public boolean profileExists(Long id) {
+        return repository.existsById(id);
     }
 
     public Freelancer saveProfile(Freelancer profile) {
         return repository.save(profile);
+    }
+
+    public Freelancer updateMyProfile(String keycloakUserId, FreelancerUpdateRequest request) {
+        Freelancer existing = Optional.ofNullable(repository.findByKeycloakUserId(keycloakUserId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Freelancer profile not found"));
+
+        existing.setFirstName(request.getFirstName());
+        existing.setLastName(request.getLastName());
+        existing.setPhone(request.getPhone());
+        existing.setSummary(request.getSummary());
+        existing.setCvUrl(request.getCvUrl());
+        existing.setPfpUrl(request.getPfpUrl());
+        existing.setSkills(request.getSkills());
+        existing.setExperiences(request.getExperiences());
+        existing.setProjects(request.getProjects());
+        return repository.save(existing);
     }
 
     @Transactional
@@ -94,6 +127,27 @@ public class FreelancerService {
             profile.setSuspended(true);
             repository.save(profile);
         });
+    }
+
+    public FreelancerProfileDTO toProfileDto(Freelancer freelancer) {
+        return new FreelancerProfileDTO(
+                freelancer.getId(),
+                freelancer.getFirstName() + " " + freelancer.getLastName(),
+                freelancer.getSummary(),
+                freelancer.getSkills(),
+                freelancer.getExperiences(),
+                freelancer.getProjects()
+        );
+    }
+
+    private FreelancerAdminDTO toAdminDto(Freelancer freelancer) {
+        return new FreelancerAdminDTO(
+                freelancer.getId(),
+                freelancer.getKeycloakUserId(),
+                freelancer.getFirstName() + " " + freelancer.getLastName(),
+                freelancer.getEmail(),
+                freelancer.isSuspended()
+        );
     }
 
     public List<MissionResponse> getAllMissions() {

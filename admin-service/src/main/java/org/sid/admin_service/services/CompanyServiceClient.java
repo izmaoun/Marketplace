@@ -19,4 +19,10 @@ public interface CompanyServiceClient {
     @PutMapping("/api/companies/admin/{id}/reject")
     CompanyDto rejectCompany(@PathVariable("id") Long companyId, @RequestBody Map<String, String> body);
 
+    @PutMapping("/api/companies/admin/{id}/suspend")
+    CompanyDto suspendCompany(@PathVariable("id") Long companyId, @RequestBody Map<String, String> body);
+
+    @DeleteMapping("/api/companies/admin/{id}")
+    void deleteCompany(@PathVariable("id") Long companyId);
+
 }
