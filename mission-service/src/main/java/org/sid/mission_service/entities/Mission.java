@@ -23,6 +23,7 @@ public class Mission {
 
     // Identifiant de l'entreprise propriétaire (référence externe)
     private Long companyId;
+    private String companyKeycloakId;
 
     private String title;
 
@@ -42,6 +43,8 @@ public class Mission {
 
     @Enumerated(EnumType.STRING)
     private MissionStatus status = MissionStatus.BROUILLON;
+
+    private String freelancerKeycloakId;
 
     private LocalDate createdAt;
     private LocalDate updatedAt;

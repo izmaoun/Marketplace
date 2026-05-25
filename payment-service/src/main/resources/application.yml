@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: payment-service
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    consul:
+      enabled: false
+  config:
+    import: ""
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -15,6 +24,10 @@ spring:
 
 stripe:
   secret-key: ${STRIPE_SECRET_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  platform-fee-percent: ${STRIPE_FEE_PERCENT:10}
+  default-currency: ${STRIPE_DEFAULT_CURRENCY:usd}
 
-spring.security.oauth2.resourceserver.jwt:
-  issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+# Temporarily disable JWT issuer when testing without Keycloak.
+# spring.security.oauth2.resourceserver.jwt:
+#   issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}

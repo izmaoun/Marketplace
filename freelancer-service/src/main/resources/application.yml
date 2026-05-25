@@ -27,3 +27,6 @@ spring:
 
 internal:
   service-token: ${INTERNAL_SERVICE_TOKEN}
+
+payment-service:
+  base-url: ${PAYMENT_SERVICE_BASE_URL:http://localhost:8088}

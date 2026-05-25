@@ -162,14 +162,14 @@ services:
     profiles: ["future"]
     environment:
       POSTGRES_DB: payment_db
-      POSTGRES_USER: payment_user
-      POSTGRES_PASSWORD: payment_secret
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
     volumes:
       - postgres_payment_data:/var/lib/postgresql/data
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payment_user"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -398,11 +398,14 @@ services:
       - "8088:8088"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
-      SPRING_DATASOURCE_USERNAME: payment_user
-      SPRING_DATASOURCE_PASSWORD: payment_secret
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
+      SPRING_CONFIG_IMPORT: "optional:configserver:"
+      SPRING_CLOUD_CONFIG_ENABLED: "false"
+      SPRING_CLOUD_CONFIG_IMPORT_CHECK_ENABLED: "false"
     depends_on:
       postgres-payment:
         condition: service_healthy

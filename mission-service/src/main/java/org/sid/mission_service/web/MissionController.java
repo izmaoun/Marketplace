@@ -1,10 +1,13 @@
 package org.sid.mission_service.web;
 
+import org.sid.mission_service.dto.AssignFreelancerRequest;
 import org.sid.mission_service.entities.Mission;
 import org.sid.mission_service.entities.WorkMode;
 import org.sid.mission_service.services.MissionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 
@@ -33,8 +36,9 @@ public class MissionController {
     }
 
     @PostMapping
-    public Mission createMission(@RequestBody Mission mission) {
-        return missionService.createMission(mission);
+    public Mission createMission(@RequestBody Mission mission, @AuthenticationPrincipal Jwt jwt) {
+        String companyKeycloakId = jwt == null ? null : jwt.getSubject();
+        return missionService.createMission(mission, companyKeycloakId);
     }
 
     @PutMapping("/{id}")
@@ -48,8 +52,10 @@ public class MissionController {
     public ResponseEntity<Mission> updateMissionForCompany(
             @PathVariable Long id,
             @PathVariable Long companyId,
-            @RequestBody Mission mission) {
-        return missionService.updateMissionForCompany(id, companyId, mission)
+            @RequestBody Mission mission,
+            @AuthenticationPrincipal Jwt jwt) {
+        String companyKeycloakId = jwt == null ? null : jwt.getSubject();
+        return missionService.updateMissionForCompany(id, companyId, mission, companyKeycloakId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -153,5 +159,14 @@ public class MissionController {
             return missionService.searchMissions(keyword);
         }
         return missionService.getMissionsPublished();
+    }
+
+    @PutMapping("/{id}/assign-freelancer")
+    public ResponseEntity<Mission> assignFreelancer(
+            @PathVariable Long id,
+            @RequestBody AssignFreelancerRequest request) {
+        return missionService.assignFreelancer(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

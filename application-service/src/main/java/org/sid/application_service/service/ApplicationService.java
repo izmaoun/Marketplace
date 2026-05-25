@@ -10,6 +10,7 @@ import org.sid.application_service.dto.ApplicationStatusRequest;
 import org.sid.application_service.dto.CompanyResponse;
 import org.sid.application_service.dto.FreelancerProfileDTO;
 import org.sid.application_service.dto.MissionResponse;
+import org.sid.application_service.dto.AssignFreelancerRequest;
 import org.sid.application_service.entity.Application;
 import org.sid.application_service.entity.ApplicationStatus;
 import org.sid.application_service.repository.ApplicationRepository;
@@ -140,7 +141,13 @@ public class ApplicationService {
         assertCurrentCompanyOwns(application.getMissionCompanyId());
 
         application.setStatus(request.getStatus());
-        return toResponse(repository.save(application));
+        Application saved = repository.save(application);
+        if (request.getStatus() == ApplicationStatus.ACCEPTED) {
+            AssignFreelancerRequest assignRequest = new AssignFreelancerRequest();
+            assignRequest.setFreelancerKeycloakId(application.getFreelancerKeycloakId());
+            missionServiceClient.assignFreelancer(application.getMissionId(), assignRequest);
+        }
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)

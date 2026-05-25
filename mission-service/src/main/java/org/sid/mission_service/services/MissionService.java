@@ -1,5 +1,7 @@
 package org.sid.mission_service.services;
 
+import org.sid.mission_service.dto.AssignFreelancerRequest;
+import org.sid.mission_service.dto.CreatePaymentRequest;
 import org.sid.mission_service.dto.MissionRequest;
 import org.sid.mission_service.dto.MissionResponse;
 import org.sid.mission_service.entities.Mission;
@@ -10,18 +12,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 @Service
 @Transactional
 public class MissionService {
 
     private final MissionRepository missionRepository;
+    private final RestTemplate restTemplate;
+    private final String paymentServiceBaseUrl;
 
-    public MissionService(MissionRepository missionRepository) {
+    public MissionService(MissionRepository missionRepository,
+                          RestTemplate restTemplate,
+                          @Value("${payment-service.base-url}") String paymentServiceBaseUrl) {
         this.missionRepository = missionRepository;
+        this.restTemplate = restTemplate;
+        this.paymentServiceBaseUrl = paymentServiceBaseUrl;
     }
 
     // ── CRUD de base ──────────────────────────────────────────────────────────
@@ -34,8 +45,11 @@ public class MissionService {
         return missionRepository.findByIdAndStatus(id, MissionStatus.PUBLIEE);
     }
 
-    public Mission createMission(Mission mission) {
+    public Mission createMission(Mission mission, String companyKeycloakId) {
         mission.setStatus(MissionStatus.BROUILLON);
+        if (companyKeycloakId != null && !companyKeycloakId.isBlank()) {
+            mission.setCompanyKeycloakId(companyKeycloakId);
+        }
         return missionRepository.save(mission);
     }
 
@@ -51,9 +65,18 @@ public class MissionService {
         });
     }
 
-    public Optional<Mission> updateMissionForCompany(Long id, Long companyId, Mission updated) {
+    public Optional<Mission> updateMissionForCompany(Long id, Long companyId, Mission updated, String companyKeycloakId) {
         assertMissionOwner(id, companyId);
-        return updateMission(id, updated);
+        Optional<Mission> result = updateMission(id, updated);
+        if (companyKeycloakId != null && !companyKeycloakId.isBlank()) {
+            result.ifPresent(mission -> {
+                if (mission.getCompanyKeycloakId() == null || mission.getCompanyKeycloakId().isBlank()) {
+                    mission.setCompanyKeycloakId(companyKeycloakId);
+                    missionRepository.save(mission);
+                }
+            });
+        }
+        return result;
     }
 
     public boolean deleteMission(Long id) {
@@ -88,12 +111,24 @@ public class MissionService {
     }
 
     public Optional<Mission> cloturerMission(Long id) {
-        return changerStatut(id, MissionStatus.CLOTUREE);
+        Optional<Mission> closed = changerStatut(id, MissionStatus.CLOTUREE);
+        closed.ifPresent(this::triggerPayment);
+        return closed;
     }
 
     public Optional<Mission> cloturerMissionForCompany(Long id, Long companyId) {
         assertMissionOwner(id, companyId);
         return cloturerMission(id);
+    }
+
+    public Optional<Mission> assignFreelancer(Long missionId, AssignFreelancerRequest request) {
+        if (request == null || request.getFreelancerKeycloakId() == null || request.getFreelancerKeycloakId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "freelancerKeycloakId is required");
+        }
+        return missionRepository.findById(missionId).map(mission -> {
+            mission.setFreelancerKeycloakId(request.getFreelancerKeycloakId());
+            return missionRepository.save(mission);
+        });
     }
 
     private void assertMissionOwner(Long missionId, Long companyId) {
@@ -125,6 +160,36 @@ public class MissionService {
                     "Invalid mission status transition: " + current + " -> " + next
             );
         }
+    }
+
+    private void triggerPayment(Mission mission) {
+        if (mission.getCompanyKeycloakId() == null || mission.getCompanyKeycloakId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "companyKeycloakId is required to pay");
+        }
+        if (mission.getFreelancerKeycloakId() == null || mission.getFreelancerKeycloakId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "freelancerKeycloakId is required to pay");
+        }
+        if (mission.getBudget() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "budget is required to pay");
+        }
+        CreatePaymentRequest payload = new CreatePaymentRequest();
+        payload.setCompanyId(resolveCompanyId(mission));
+        payload.setFreelancerId(mission.getFreelancerKeycloakId());
+        payload.setAmountCents(toCents(mission.getBudget()));
+
+        String url = paymentServiceBaseUrl + "/api/payments/mission/" + mission.getId();
+        restTemplate.postForObject(url, payload, Object.class);
+    }
+
+    private String resolveCompanyId(Mission mission) {
+        if (mission.getCompanyKeycloakId() != null && !mission.getCompanyKeycloakId().isBlank()) {
+            return mission.getCompanyKeycloakId();
+        }
+        return mission.getCompanyId() == null ? null : mission.getCompanyId().toString();
+    }
+
+    private long toCents(BigDecimal amount) {
+        return amount.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
     }
 
     // ── Requêtes métier ───────────────────────────────────────────────────────

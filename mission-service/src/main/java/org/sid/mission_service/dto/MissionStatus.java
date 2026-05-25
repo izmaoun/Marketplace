@@ -4,6 +4,6 @@ public enum MissionStatus {
     BROUILLON,
     PUBLIEE,
     EN_COURS,
-    CLOTURE,
+    CLOTUREE,
 }
 

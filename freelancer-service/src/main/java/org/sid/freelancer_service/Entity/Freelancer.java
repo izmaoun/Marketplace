@@ -27,6 +27,7 @@ public class Freelancer {
     @Column(unique = true, nullable = false)
     private String email;
 
+    private String stripeAccountId;
     private String phone;
     private String summary;
     private String cvUrl;

@@ -7,6 +7,8 @@ import org.sid.freelancer_service.DTO.FreelancerProfileDTO;
 import org.sid.freelancer_service.DTO.FreelancerUpdateRequest;
 import org.sid.freelancer_service.DTO.MissionResponse;
 import org.sid.freelancer_service.DTO.WorkMode;
+import org.sid.freelancer_service.DTO.StripeAccountOnboardingRequest;
+import org.sid.freelancer_service.DTO.StripeAccountOnboardingResponse;
 import org.sid.freelancer_service.Entity.Freelancer;
 import org.sid.freelancer_service.Repository.FreelancerRepository;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,13 +30,19 @@ public class FreelancerService {
 
     private final FreelancerRepository repository;
     private final MissionServiceClient missionServiceClient;
+    private final RestTemplate restTemplate;
+    private final String paymentServiceBaseUrl;
 
     private static final int MAX_PAGE_SIZE = 100;
 
     public FreelancerService(FreelancerRepository repository,
-                             MissionServiceClient missionServiceClient) {
+                             MissionServiceClient missionServiceClient,
+                             RestTemplate restTemplate,
+                             @Value("${payment-service.base-url}") String paymentServiceBaseUrl) {
         this.repository = repository;
         this.missionServiceClient = missionServiceClient;
+        this.restTemplate = restTemplate;
+        this.paymentServiceBaseUrl = paymentServiceBaseUrl;
     }
 
     // ✅ Remplace getAllProfiles() — paginé, trié par lastName
@@ -109,12 +119,31 @@ public class FreelancerService {
 
         Freelancer saved = repository.save(freelancer);
 
+        StripeAccountOnboardingResponse stripeResponse = createStripeAccount(saved);
+        saved.setStripeAccountId(stripeResponse.getAccountId());
+        repository.save(saved);
+
         FreelancerResponse response = new FreelancerResponse();
         response.setId(saved.getId());
         response.setKeycloakUserId(saved.getKeycloakUserId());
         response.setEmail(saved.getEmail());
         response.setFirstName(saved.getFirstName());
         response.setLastName(saved.getLastName());
+        response.setStripeAccountId(saved.getStripeAccountId());
+        response.setStripeOnboardingUrl(stripeResponse.getOnboardingUrl());
+        return response;
+    }
+
+    private StripeAccountOnboardingResponse createStripeAccount(Freelancer freelancer) {
+        String url = paymentServiceBaseUrl + "/api/stripe/accounts/freelancers/" + freelancer.getKeycloakUserId();
+        StripeAccountOnboardingRequest payload = new StripeAccountOnboardingRequest();
+        payload.setEmail(freelancer.getEmail());
+        StripeAccountOnboardingResponse response = restTemplate.postForObject(
+                url, payload, StripeAccountOnboardingResponse.class
+        );
+        if (response == null || response.getAccountId() == null || response.getOnboardingUrl() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Stripe account creation failed");
+        }
         return response;
     }
 
