@@ -15,7 +15,7 @@ public class Freelancer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "keycloak_id", unique = true, nullable = false)
     private String keycloakUserId; // L'identifiant de l'utilisateur cote Keycloak
 
     @Column(nullable = false)
