@@ -1,7 +1,7 @@
 services:
   # ── WSO2 API Manager (Gateway + Management)
   wso2-am:
-    image: wso2/wso2am:latest
+    image: wso2/wso2am:4.0.0
     container_name: wso2-am
     ports:
       - "9443:9443" # Interface d'administration (Publisher/DevPortal)
@@ -14,7 +14,7 @@ services:
     depends_on:
       - keycloak
     volumes:
-      - wso2am_data:/home/wso2carbon/wso2am-4.0.0/repository/database
+      - wso2am_data:/home/wso2carbon/wso2am-4.0.0/repository
 
   # ════════════════════════════════════════════════════════
   # INFRASTRUCTURE
