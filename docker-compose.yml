@@ -14,14 +14,13 @@ services:
     depends_on:
       - keycloak
     volumes:
-      - wso2am_data:/home/wso2carbon/wso2am-4.7.0/repository/database
+      - wso2am_data:/home/wso2carbon/wso2am-4.0.0/repository/database
 
   # ════════════════════════════════════════════════════════
   # INFRASTRUCTURE
   # ════════════════════════════════════════════════════════
 
   # ── Keycloak DB ─────────────────────────────────────────
-  # ── Base de données pour WSO2 API Manager ──
   postgres-keycloak:
     image: postgres:15
     container_name: postgres-keycloak
@@ -471,3 +470,4 @@ volumes:
   postgres_assessment_data:
   mongodb_messaging_data:
   wso2am_data:
+
