@@ -54,12 +54,11 @@ public class FreelancerController {
     }
 
     @PutMapping("/{id:\\d+}")
-    public ResponseEntity<Freelancer> updateProfile(@PathVariable Long id, @RequestBody Freelancer profile) {
+    public ResponseEntity<Freelancer> updateProfile(@PathVariable Long id, @RequestBody FreelancerUpdateRequest request) {
         if (!service.profileExists(id)) {
             return ResponseEntity.notFound().build();
         }
-        profile.setId(id);
-        return ResponseEntity.ok(service.saveProfile(profile));
+        return ResponseEntity.ok(service.updateProfileById(id, request));
     }
 
     @DeleteMapping("/{id:\\d+}")

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@FeignClient(name = "mission-service", url = "http://mission-service:8084")
+@FeignClient(name = "mission-service", url = "${services.mission.url}")
 public interface MissionServiceClient {
 
     @GetMapping("/api/missions/company/{companyId}")

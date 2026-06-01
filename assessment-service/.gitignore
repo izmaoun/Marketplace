@@ -1,6 +1,0 @@
-target/
-.git/
-*.md
-.mvn/
-*.iml
-.idea/

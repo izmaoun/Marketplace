@@ -470,4 +470,3 @@ volumes:
   postgres_assessment_data:
   mongodb_messaging_data:
   wso2am_data:
-

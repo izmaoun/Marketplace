@@ -31,3 +31,7 @@ internal:
 payment-service:
   base-url: ${PAYMENT_SERVICE_BASE_URL:http://localhost:8088}
   enabled: ${PAYMENT_SERVICE_ENABLED:false}
+
+services:
+  mission:
+    url: ${MISSION_SERVICE_URL:http://mission-service:8084}  # ← ajout

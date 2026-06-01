@@ -165,6 +165,22 @@ public class FreelancerService {
         });
     }
 
+    public Freelancer updateProfileById(Long id, FreelancerUpdateRequest request) {
+        Freelancer existing = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Freelancer not found"));
+
+        existing.setFirstName(request.getFirstName());
+        existing.setLastName(request.getLastName());
+        existing.setPhone(request.getPhone());
+        existing.setSummary(request.getSummary());
+        existing.setCvUrl(request.getCvUrl());
+        existing.setPfpUrl(request.getPfpUrl());
+        existing.setSkills(request.getSkills());
+        existing.setExperiences(request.getExperiences());
+        existing.setProjects(request.getProjects());
+        return repository.save(existing);
+    }
+
     public FreelancerProfileDTO toProfileDto(Freelancer freelancer) {
         return new FreelancerProfileDTO(
                 freelancer.getId(),

@@ -6,11 +6,9 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "mission-service", url = "http://mission-service:8084")
+@FeignClient(name = "mission-service", url = "${services.mission.url}")
 public interface MissionServiceClient {
 
-//    @GetMapping("/api/missions/company/{companyId}")
-//    List<MissionResponse> getMissionsByCompany(@PathVariable("companyId") Long companyId);
 
     @PostMapping("/api/missions")
     MissionResponse createMission(@RequestBody MissionRequest mission);
@@ -58,9 +56,4 @@ public interface MissionServiceClient {
             @PathVariable("id") Long id,
             @PathVariable("companyId") Long companyId);
 
-//    @GetMapping("/api/missions/search")
-//    List<MissionResponse> searchMissions(
-//            @RequestParam(value = "skill", required = false) String skill,
-//            @RequestParam(value = "keyword", required = false) String keyword,
-//            @RequestParam(value = "workMode", required = false) WorkMode workMode);
 }

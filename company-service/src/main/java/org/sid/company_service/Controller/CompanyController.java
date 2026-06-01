@@ -20,23 +20,20 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
-    // ── Inscription : créer une entreprise ──
     @PostMapping
     public ResponseEntity<CompanyResponse> createCompany(@RequestBody CompanyRequest request) {
         return ResponseEntity.ok(companyService.saveCompanyFromAuth(request));
     }
 
-
     @GetMapping
     public ResponseEntity<List<CompanyPublicDTO>> getAllCompanies() {
         return ResponseEntity.ok(
-                companyService.getAllCompanies().stream()
+                companyService.getValidatedCompanies().stream()
                         .map(c -> new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine()))
                         .collect(Collectors.toList())
         );
     }
 
-    // ── Mon entreprise (jwt oho)
     @GetMapping("/me")
     public ResponseEntity<Company> getMyCompany(@AuthenticationPrincipal Jwt jwt) {
         String keycloakId = jwt.getSubject();
@@ -46,20 +43,18 @@ public class CompanyController {
     @PutMapping("/me")
     public ResponseEntity<Company> updateMyCompany(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody CompanyMeDTO updated) {
+            @RequestBody CompanyUpdateRequest updated) {
         String keycloakId = jwt.getSubject();
         Company mine = companyService.getCompanyByKeycloakId(keycloakId);
         return ResponseEntity.ok(companyService.updateCompany(mine.getId(), updated));
     }
 
-    // ── Profil public ──
     @GetMapping("/{id}")
     public ResponseEntity<CompanyPublicDTO> getCompany(@PathVariable Long id) {
         Company c = companyService.getCompanyById(id);
         return ResponseEntity.ok(new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine()));
     }
 
-    // ── Admin ──
     @GetMapping("/admin/pending")
     public ResponseEntity<List<Company>> getPending() {
         return ResponseEntity.ok(companyService.getPendingCompanies());
@@ -90,7 +85,6 @@ public class CompanyController {
         return ResponseEntity.noContent().build();
     }
 
-    // ── Missions ──
     @PostMapping("/missions")
     public ResponseEntity<MissionResponse> createMission(
             @AuthenticationPrincipal Jwt jwt,

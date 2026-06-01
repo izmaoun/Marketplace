@@ -31,3 +31,6 @@ spring:
 
 internal:
   service-token: ${INTERNAL_SERVICE_TOKEN}
+services:
+  mission:
+    url: ${MISSION_SERVICE_URL:http://mission-service:8084}

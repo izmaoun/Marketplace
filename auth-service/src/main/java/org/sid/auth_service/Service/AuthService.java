@@ -116,4 +116,5 @@ public class AuthService {
     public ResponseEntity<?> login(AuthRequest request) {
         return keycloakService.login(request);
     }
+    public ResponseEntity<?> logout(String refreshToken) { return keycloakService.logout(refreshToken); }
 }

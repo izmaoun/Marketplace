@@ -185,4 +185,32 @@ public class KeycloakService {
                 ((Number) tokenMap.get("expires_in")).longValue()
         );
     }
+
+    public ResponseEntity<?> logout(String refreshToken) {
+        try {
+            String logoutUrl = serverUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", userClientId);
+            params.add("client_secret", userClientSecret);
+            params.add("refresh_token", refreshToken);
+
+            HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(params, headers);
+            restTemplate.postForEntity(logoutUrl, httpEntity, Void.class);
+
+            log.info("Logout effectué avec succès");
+            return ResponseEntity.noContent().build();
+        } catch (HttpClientErrorException e) {
+            log.warn("Logout échoué : HTTP {}", e.getStatusCode());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Refresh token invalide ou déjà expiré");
+        } catch (Exception e) {
+            log.error("Erreur technique logout : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur technique lors du logout");
+        }
+    }
 }
