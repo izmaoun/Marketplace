@@ -32,17 +32,20 @@ public class FreelancerService {
     private final MissionServiceClient missionServiceClient;
     private final RestTemplate restTemplate;
     private final String paymentServiceBaseUrl;
+    private final boolean paymentServiceEnabled;
 
     private static final int MAX_PAGE_SIZE = 100;
 
     public FreelancerService(FreelancerRepository repository,
                              MissionServiceClient missionServiceClient,
                              RestTemplate restTemplate,
-                             @Value("${payment-service.base-url}") String paymentServiceBaseUrl) {
+                             @Value("${payment-service.base-url}") String paymentServiceBaseUrl,
+                             @Value("${payment-service.enabled:false}") boolean paymentServiceEnabled) {
         this.repository = repository;
         this.missionServiceClient = missionServiceClient;
         this.restTemplate = restTemplate;
         this.paymentServiceBaseUrl = paymentServiceBaseUrl;
+        this.paymentServiceEnabled = paymentServiceEnabled;
     }
 
     // ✅ Remplace getAllProfiles() — paginé, trié par lastName
@@ -118,10 +121,12 @@ public class FreelancerService {
         freelancer.setProjects(new ArrayList<>());
 
         Freelancer saved = repository.save(freelancer);
-
-        StripeAccountOnboardingResponse stripeResponse = createStripeAccount(saved);
-        saved.setStripeAccountId(stripeResponse.getAccountId());
-        repository.save(saved);
+        StripeAccountOnboardingResponse stripeResponse = null;
+        if (paymentServiceEnabled) {
+            stripeResponse = createStripeAccount(saved);
+            saved.setStripeAccountId(stripeResponse.getAccountId());
+            repository.save(saved);
+        }
 
         FreelancerResponse response = new FreelancerResponse();
         response.setId(saved.getId());
@@ -129,8 +134,10 @@ public class FreelancerService {
         response.setEmail(saved.getEmail());
         response.setFirstName(saved.getFirstName());
         response.setLastName(saved.getLastName());
-        response.setStripeAccountId(saved.getStripeAccountId());
-        response.setStripeOnboardingUrl(stripeResponse.getOnboardingUrl());
+        if (stripeResponse != null) {
+            response.setStripeAccountId(stripeResponse.getAccountId());
+            response.setStripeOnboardingUrl(stripeResponse.getOnboardingUrl());
+        }
         return response;
     }
 

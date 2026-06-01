@@ -13,12 +13,15 @@ services:
       - backend
     depends_on:
       - keycloak
+    volumes:
+      - wso2am_data:/home/wso2carbon/wso2am-4.7.0/repository/database
 
   # ════════════════════════════════════════════════════════
   # INFRASTRUCTURE
   # ════════════════════════════════════════════════════════
 
   # ── Keycloak DB ─────────────────────────────────────────
+  # ── Base de données pour WSO2 API Manager ──
   postgres-keycloak:
     image: postgres:15
     container_name: postgres-keycloak
@@ -69,7 +72,7 @@ services:
     environment:
       POSTGRES_DB: freelancer_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: MEDWALIDKH1st.
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_freelancer_data:/var/lib/postgresql/data
     ports:
@@ -88,7 +91,7 @@ services:
     environment:
       POSTGRES_DB: company_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: MEDWALIDKH1st.
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_company_data:/var/lib/postgresql/data
     ports:
@@ -107,7 +110,7 @@ services:
     environment:
       POSTGRES_DB: mission_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: MEDWALIDKH1st.
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_mission_data:/var/lib/postgresql/data
     ports:
@@ -125,8 +128,8 @@ services:
     container_name: postgres-application
     environment:
       POSTGRES_DB: application_db
-      POSTGRES_USER: application_user
-      POSTGRES_PASSWORD: application_secret
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_application_data:/var/lib/postgresql/data
     networks:
@@ -143,7 +146,7 @@ services:
     environment:
       POSTGRES_DB: admin_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: MEDWALIDKH1st.
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_admin_data:/var/lib/postgresql/data
     ports:
@@ -163,7 +166,7 @@ services:
     environment:
       POSTGRES_DB: payment_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
+      POSTGRES_PASSWORD: fifa2014
     volumes:
       - postgres_payment_data:/var/lib/postgresql/data
     networks:
@@ -267,7 +270,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-freelancer:5432/freelancer_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
@@ -287,7 +290,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-company:5432/company_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
@@ -307,7 +310,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-mission:5432/mission_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
@@ -326,8 +329,8 @@ services:
       - "8085:8085"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-application:5432/application_db
-      SPRING_DATASOURCE_USERNAME: application_user
-      SPRING_DATASOURCE_PASSWORD: application_secret
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -350,7 +353,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: MEDWALIDKH1st.
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
     depends_on:
@@ -399,7 +402,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_DATASOURCE_PASSWORD: fifa2014
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: b2b-platform
@@ -467,4 +470,4 @@ volumes:
   postgres_scoring_data:
   postgres_assessment_data:
   mongodb_messaging_data:
-
+  wso2am_data:
