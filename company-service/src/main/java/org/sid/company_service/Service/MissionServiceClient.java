@@ -13,6 +13,9 @@ public interface MissionServiceClient {
     @PostMapping("/api/missions")
     MissionResponse createMission(@RequestBody MissionRequest mission);
 
+    @GetMapping("/api/missions/company/{companyId}/all")
+    java.util.List<MissionResponse> getAllMissionsForCompany(@PathVariable("companyId") Long companyId);
+
     @PutMapping("/api/missions/{id}")
     ResponseEntity<MissionResponse> updateMission(
             @PathVariable("id") Long id,

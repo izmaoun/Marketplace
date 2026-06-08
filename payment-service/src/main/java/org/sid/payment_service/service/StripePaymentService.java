@@ -12,8 +12,12 @@ import org.sid.payment_service.entity.StripeAccount;
 import org.sid.payment_service.entity.StripeAccountOwnerType;
 import org.sid.payment_service.repository.PaymentRepository;
 import org.sid.payment_service.repository.StripeAccountRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -36,12 +40,23 @@ public class StripePaymentService {
     }
 
     @Transactional
-    public PaymentResponse createPaymentForMissionComplete(String missionId, CreatePaymentRequest request) throws StripeException {
+    public PaymentResponse createPaymentForMissionComplete(String missionId,
+                                                           CreatePaymentRequest request,
+                                                           Authentication authentication) throws StripeException {
+        assertCanCreatePayment(request, authentication);
+        assertStripeConfigured();
+
         StripeAccount stripeAccount = stripeAccountRepository
                 .findByOwnerTypeAndOwnerId(StripeAccountOwnerType.FREELANCER, request.getFreelancerId())
-                .orElseThrow(() -> new IllegalStateException("Freelancer stripe account not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Le freelancer doit d'abord connecter son compte Stripe."
+                ));
 
         long amountCents = request.getAmountCents();
+        if (amountCents <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le montant du paiement doit etre positif.");
+        }
         long feeCents = feeCalculator.calculateFee(amountCents, stripeProperties.getPlatformFeePercent());
         long netCents = Math.max(0, amountCents - feeCents);
 
@@ -80,14 +95,15 @@ public class StripePaymentService {
         payment.setStatus(PaymentStatus.REQUIRES_PAYMENT);
         paymentRepository.save(payment);
 
-        return toResponse(payment);
+        return toResponse(payment, canReadClientSecret(payment, authentication));
     }
 
     @Transactional(readOnly = true)
-    public PaymentResponse getPayment(UUID paymentId) {
+    public PaymentResponse getPayment(UUID paymentId, Authentication authentication) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
-        return toResponse(payment);
+        assertCanReadPayment(payment, authentication);
+        return toResponse(payment, canReadClientSecret(payment, authentication));
     }
 
     @Transactional
@@ -113,11 +129,66 @@ public class StripePaymentService {
         return requestedCurrency.toLowerCase(Locale.ROOT);
     }
 
-    private PaymentResponse toResponse(Payment payment) {
+    private void assertStripeConfigured() {
+        String secretKey = stripeProperties.getSecretKey();
+        if (secretKey == null || secretKey.isBlank() || "sk_test_xxx".equals(secretKey)) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Stripe n'est pas configure: renseignez STRIPE_SECRET_KEY avec une vraie cle de test Stripe."
+            );
+        }
+    }
+
+    private void assertCanCreatePayment(CreatePaymentRequest request, Authentication authentication) {
+        if (hasRole(authentication, "INTERNAL") || hasRole(authentication, "ADMIN")) {
+            return;
+        }
+        if (hasRole(authentication, "COMPANY") && isCurrentUser(authentication, request.getCompanyId())) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to create this payment");
+    }
+
+    private void assertCanReadPayment(Payment payment, Authentication authentication) {
+        if (hasRole(authentication, "INTERNAL") || hasRole(authentication, "ADMIN")) {
+            return;
+        }
+        if (hasRole(authentication, "COMPANY") && isCurrentUser(authentication, payment.getCompanyId())) {
+            return;
+        }
+        if (hasRole(authentication, "FREELANCER") && isCurrentUser(authentication, payment.getFreelancerId())) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this payment");
+    }
+
+    private boolean canReadClientSecret(Payment payment, Authentication authentication) {
+        return hasRole(authentication, "COMPANY") && isCurrentUser(authentication, payment.getCompanyId());
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
+        if (authentication == null) {
+            return false;
+        }
+        String authority = "ROLE_" + role;
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority::equals);
+    }
+
+    private boolean isCurrentUser(Authentication authentication, String ownerId) {
+        return authentication != null
+                && ownerId != null
+                && ownerId.equals(authentication.getName());
+    }
+
+    private PaymentResponse toResponse(Payment payment, boolean includeClientSecret) {
         PaymentResponse response = new PaymentResponse();
         response.setId(payment.getId().toString());
         response.setStatus(payment.getStatus().name());
-        response.setClientSecret(payment.getStripeClientSecret());
+        if (includeClientSecret) {
+            response.setClientSecret(payment.getStripeClientSecret());
+        }
         response.setAmountCents(payment.getAmountCents());
         response.setPlatformFeeCents(payment.getPlatformFeeCents());
         response.setNetAmountCents(payment.getNetAmountCents());

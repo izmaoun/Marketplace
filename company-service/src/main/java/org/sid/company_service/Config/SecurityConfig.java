@@ -27,6 +27,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/companies").hasRole("INTERNAL")
+                        .requestMatchers(HttpMethod.GET, "/api/companies/internal/**").hasRole("INTERNAL")
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/api/companies/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/companies/me/**").authenticated()

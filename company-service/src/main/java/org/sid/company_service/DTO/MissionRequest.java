@@ -9,6 +9,7 @@ import java.util.List;
 public class MissionRequest {
 
     private Long companyId;
+    private String companyKeycloakId;
     private String title;
     private String description;
     private List<String> requiredSkills;

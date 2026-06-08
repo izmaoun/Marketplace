@@ -4,18 +4,6 @@ server:
 spring:
   application:
     name: messaging-service
-  config:
-    import: "optional:configserver:"
-  cloud:
-    config:
-      enabled: false
-      import-check:
-        enabled: false
-    consul:
-      config:
-        enabled: false
-        import-check:
-          enabled: false
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/messaging_db}
@@ -23,10 +11,14 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:${KEYCLOAK_URL:http://localhost:8080}}/realms/${KEYCLOAK_REALM:b2b-platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}/protocol/openid-connect/certs}
 
 app:
   websocket:
     allowed-origins: ${WS_ALLOWED_ORIGINS:*}
   security:
     enabled: ${APP_SECURITY_ENABLED:true}
+
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:}

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
 
-@FeignClient(name = "freelancer-service", url = "http://freelancer-service:8082")
+@FeignClient(name = "freelancer-service", url = "${services.freelancer.url:http://freelancer-service:8082}")
 public interface FreelancerServiceClient {
 
     @GetMapping("/api/freelances/admin")

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 public interface MissionRepository extends JpaRepository<Mission, Long> {
 
@@ -34,4 +35,28 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
            "(LOWER(m.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Mission> searchPublished(@Param("keyword") String keyword);
+
+    @Query("""
+           SELECT DISTINCT m FROM Mission m
+           LEFT JOIN m.requiredSkills s
+           WHERE m.status <> :draftStatus
+             AND ((:status IS NULL AND m.status = :defaultStatus) OR (:status IS NOT NULL AND m.status = :status))
+             AND (:skill IS NULL OR :skill = '' OR LOWER(s) = LOWER(:skill))
+             AND (:keyword IS NULL OR :keyword = '' OR
+                  LOWER(m.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+                  LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+             AND (:workMode IS NULL OR m.workMode = :workMode)
+             AND (:minBudget IS NULL OR m.budget >= :minBudget)
+             AND (:maxBudget IS NULL OR m.budget <= :maxBudget)
+           """)
+    List<Mission> filterVisibleForFreelancers(
+            @Param("skill") String skill,
+            @Param("keyword") String keyword,
+            @Param("workMode") WorkMode workMode,
+            @Param("minBudget") BigDecimal minBudget,
+            @Param("maxBudget") BigDecimal maxBudget,
+            @Param("status") MissionStatus status,
+            @Param("defaultStatus") MissionStatus defaultStatus,
+            @Param("draftStatus") MissionStatus draftStatus
+    );
 }

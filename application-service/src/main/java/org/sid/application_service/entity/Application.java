@@ -45,6 +45,9 @@ public class Application {
     @Column(name = "freelancer_keycloak_id", nullable = false)
     private String freelancerKeycloakId;
 
+    @Column(name = "freelancer_id")
+    private Long freelancerId;
+
     @Column(nullable = false)
     private String freelancerFullname;
 
@@ -55,7 +58,7 @@ public class Application {
     private int compatibilityScore;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30, columnDefinition = "varchar(30)")
     private ApplicationStatus status;
 
     @Column(nullable = false, updatable = false)

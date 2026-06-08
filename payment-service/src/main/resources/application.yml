@@ -4,30 +4,28 @@ server:
 spring:
   application:
     name: payment-service
-  cloud:
-    config:
-      enabled: false
-      import-check:
-        enabled: false
-    consul:
-      enabled: false
-  config:
-    import: ""
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payment_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:${KEYCLOAK_URL:http://localhost:8080}}/realms/${KEYCLOAK_REALM:b2b-platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}/protocol/openid-connect/certs}
 
 stripe:
   secret-key: ${STRIPE_SECRET_KEY}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   platform-fee-percent: ${STRIPE_FEE_PERCENT:10}
   default-currency: ${STRIPE_DEFAULT_CURRENCY:usd}
+  account-link-refresh-url: ${STRIPE_ACCOUNT_LINK_REFRESH_URL:http://localhost:5173/freelancer}
+  account-link-return-url: ${STRIPE_ACCOUNT_LINK_RETURN_URL:http://localhost:5173/freelancer}
 
-# Temporarily disable JWT issuer when testing without Keycloak.
-# spring.security.oauth2.resourceserver.jwt:
-#   issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:}

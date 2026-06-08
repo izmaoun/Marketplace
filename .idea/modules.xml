@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Marketplace.iml" filepath="$PROJECT_DIR$/.idea/Marketplace.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/FIC-backend.iml" filepath="$PROJECT_DIR$/.idea/FIC-backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/admin-service/admin-service.iml" filepath="$PROJECT_DIR$/admin-service/admin-service.iml" />
       <module fileurl="file://$PROJECT_DIR$/freelancer-service/freelancer-service.iml" filepath="$PROJECT_DIR$/freelancer-service/freelancer-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/media-service/media-service.iml" filepath="$PROJECT_DIR$/media-service/media-service.iml" />
       <module fileurl="file://$PROJECT_DIR$/mission-service/mission-service.iml" filepath="$PROJECT_DIR$/mission-service/mission-service.iml" />
       <module fileurl="file://$PROJECT_DIR$/payment-service/payment-service.iml" filepath="$PROJECT_DIR$/payment-service/payment-service.iml" />
     </modules>

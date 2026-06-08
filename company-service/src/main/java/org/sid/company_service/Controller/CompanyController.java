@@ -29,7 +29,7 @@ public class CompanyController {
     public ResponseEntity<List<CompanyPublicDTO>> getAllCompanies() {
         return ResponseEntity.ok(
                 companyService.getValidatedCompanies().stream()
-                        .map(c -> new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine()))
+                        .map(c -> new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine(), c.getPfpUrl()))
                         .collect(Collectors.toList())
         );
     }
@@ -38,6 +38,13 @@ public class CompanyController {
     public ResponseEntity<Company> getMyCompany(@AuthenticationPrincipal Jwt jwt) {
         String keycloakId = jwt.getSubject();
         return ResponseEntity.ok(companyService.getCompanyByKeycloakId(keycloakId));
+    }
+
+    @GetMapping("/internal/email-exists")
+    public ResponseEntity<Void> emailExists(@RequestParam String email) {
+        return companyService.emailExists(email)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 
     @PutMapping("/me")
@@ -52,12 +59,17 @@ public class CompanyController {
     @GetMapping("/{id}")
     public ResponseEntity<CompanyPublicDTO> getCompany(@PathVariable Long id) {
         Company c = companyService.getCompanyById(id);
-        return ResponseEntity.ok(new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine()));
+        return ResponseEntity.ok(new CompanyPublicDTO(c.getId(), c.getCompanyName(), c.getDomaine(), c.getPfpUrl()));
     }
 
     @GetMapping("/admin/pending")
     public ResponseEntity<List<Company>> getPending() {
         return ResponseEntity.ok(companyService.getPendingCompanies());
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<List<Company>> getAllForAdmin() {
+        return ResponseEntity.ok(companyService.getAllCompanies());
     }
 
     @PutMapping("/admin/{id}/validate")
@@ -90,6 +102,11 @@ public class CompanyController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody MissionRequest mission) {
         return ResponseEntity.ok(companyService.createMission(jwt.getSubject(), mission));
+    }
+
+    @GetMapping("/missions")
+    public ResponseEntity<List<MissionResponse>> getMyMissions(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(companyService.getMyMissions(jwt.getSubject()));
     }
 
     @PutMapping("/missions/{id}")

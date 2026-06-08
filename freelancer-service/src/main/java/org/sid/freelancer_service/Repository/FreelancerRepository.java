@@ -10,7 +10,9 @@ import java.util.Optional;
 public interface FreelancerRepository extends JpaRepository<Freelancer, Long> {
         boolean existsByEmail(String email);
         boolean existsByKeycloakUserId(String keycloakUserId);
+        Optional<Freelancer> findByEmail(String email);
         Freelancer findByKeycloakUserId(String keycloakUserId);
+        Optional<Freelancer> findByKeycloakUserIdAndSuspendedFalse(String keycloakUserId);
         Page<Freelancer> findBySuspendedFalse(Pageable pageable);
         Optional<Freelancer> findByIdAndSuspendedFalse(Long id);
 }

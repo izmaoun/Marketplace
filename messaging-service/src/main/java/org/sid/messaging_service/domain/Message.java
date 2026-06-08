@@ -12,6 +12,7 @@ public class Message {
 
     private String conversationId;
     private Long senderId;
+    private String senderKeycloakId;
     private String senderRole;
     private String content;
     private Instant sentAt = Instant.now();
@@ -39,6 +40,14 @@ public class Message {
 
     public void setSenderId(Long senderId) {
         this.senderId = senderId;
+    }
+
+    public String getSenderKeycloakId() {
+        return senderKeycloakId;
+    }
+
+    public void setSenderKeycloakId(String senderKeycloakId) {
+        this.senderKeycloakId = senderKeycloakId;
     }
 
     public String getSenderRole() {

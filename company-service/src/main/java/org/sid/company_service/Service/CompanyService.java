@@ -16,16 +16,19 @@ public class CompanyService {
 
     private final CompanyServiceRepository companyRep;
     private final MissionServiceClient missionServiceClient;
+    private final AuthServiceClient authServiceClient;
 
     public CompanyService(CompanyServiceRepository companyRep,
-                          MissionServiceClient missionServiceClient) {
+                          MissionServiceClient missionServiceClient,
+                          AuthServiceClient authServiceClient) {
         this.companyRep = companyRep;
         this.missionServiceClient = missionServiceClient;
+        this.authServiceClient = authServiceClient;
     }
 
     public CompanyResponse saveCompanyFromAuth(CompanyRequest request) {
         if (companyRep.findByCompanyEmail(request.getEmail()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email déjà utilisé");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email deja utilise");
         }
 
         Company company = Company.builder()
@@ -35,6 +38,10 @@ public class CompanyService {
                 .siret(request.getSiret())
                 .contactFirstName(request.getContactFirstName())
                 .contactLastName(request.getContactLastName())
+                .companyAddress(request.getCompanyAddress())
+                .companyPhone(request.getCompanyPhone())
+                .domaine(request.getDomaine())
+                .pfpUrl(request.getPfpUrl())
                 .status(CompanyStatus.Pending) // toujours forcé à Pending
                 .build();
 
@@ -44,6 +51,10 @@ public class CompanyService {
 
     public List<Company> getAllCompanies() {
         return companyRep.findAll();
+    }
+
+    public boolean emailExists(String email) {
+        return email != null && companyRep.findByCompanyEmail(email).isPresent();
     }
 
     public Company getCompanyById(Long id) {
@@ -61,11 +72,16 @@ public class CompanyService {
     public Company updateCompany(Long id, CompanyUpdateRequest updated) {
         Company existing = getCompanyById(id);
         existing.setCompanyName(updated.getCompanyName());
+        existing.setContactFirstName(updated.getContactFirstName());
+        existing.setContactLastName(updated.getContactLastName());
         existing.setCompanyAddress(updated.getCompanyAddress());
         existing.setCompanyPhone(updated.getCompanyPhone());
         existing.setCompanyFax(updated.getCompanyFax());
         existing.setDomaine(updated.getDomaine());
-        return companyRep.save(existing);
+        existing.setPfpUrl(updated.getPfpUrl());
+        Company saved = companyRep.save(existing);
+        syncKeycloakProfile(saved);
+        return saved;
     }
 
     public void deleteCompany(Long id) {
@@ -98,41 +114,69 @@ public class CompanyService {
     }
 
     public MissionResponse createMission(String keycloakId, MissionRequest mission) {
-        Company company = getCompanyByKeycloakId(keycloakId);
-        if (company.getStatus() != CompanyStatus.Validated) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Company not validated");
-        }
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
         mission.setCompanyId(company.getId());
+        mission.setCompanyKeycloakId(keycloakId);
         return missionServiceClient.createMission(mission);
     }
 
+    public List<MissionResponse> getMyMissions(String keycloakId) {
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
+        return missionServiceClient.getAllMissionsForCompany(company.getId());
+    }
+
     public ResponseEntity<MissionResponse> updateMission(String keycloakId, Long id, MissionRequest mission) {
-        Company company = getCompanyByKeycloakId(keycloakId);
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
         mission.setCompanyId(company.getId());
+        mission.setCompanyKeycloakId(keycloakId);
         return missionServiceClient.updateMissionForCompany(id, company.getId(), mission);
     }
 
     public ResponseEntity<Void> deleteMission(String keycloakId, Long id) {
-        Company company = getCompanyByKeycloakId(keycloakId);
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
         return missionServiceClient.deleteMissionForCompany(id, company.getId());
     }
 
     public ResponseEntity<MissionResponse> publierMission(String keycloakId, Long id) {
-        Company company = getCompanyByKeycloakId(keycloakId);
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
         return missionServiceClient.publierMissionForCompany(id, company.getId());
     }
 
     public ResponseEntity<MissionResponse> demarrerMission(String keycloakId, Long id) {
-        Company company = getCompanyByKeycloakId(keycloakId);
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
         return missionServiceClient.demarrerMissionForCompany(id, company.getId());
     }
 
     public ResponseEntity<MissionResponse> cloturerMission(String keycloakId, Long id) {
-        Company company = getCompanyByKeycloakId(keycloakId);
+        Company company = getValidatedCompanyByKeycloakId(keycloakId);
         return missionServiceClient.cloturerMissionForCompany(id, company.getId());
     }
 
     public List<Company> getValidatedCompanies() {
         return companyRep.findByStatus(CompanyStatus.Validated);
+    }
+
+    private Company getValidatedCompanyByKeycloakId(String keycloakId) {
+        Company company = getCompanyByKeycloakId(keycloakId);
+        if (company.getStatus() != CompanyStatus.Validated) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Company not validated");
+        }
+        return company;
+    }
+
+    private void syncKeycloakProfile(Company company) {
+        try {
+            authServiceClient.updateKeycloakProfile(
+                    company.getKeycloakId(),
+                    new KeycloakProfileUpdateRequest(
+                            company.getContactFirstName(),
+                            company.getContactLastName(),
+                            company.getCompanyPhone(),
+                            company.getCompanyName()
+                    )
+            );
+        } catch (Exception ignored) {
+            // Company profile remains the business source of truth; Keycloak sync is retried on the next update.
+        }
     }
 }

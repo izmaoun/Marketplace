@@ -19,7 +19,7 @@ public class InternalServiceTokenFilter extends OncePerRequestFilter {
 
     private static final String HEADER_NAME = "X-Internal-Token";
 
-    @Value("${internal.service-token}")
+    @Value("${internal.service-token:}")
     private String internalServiceToken;
 
     @Override
@@ -27,11 +27,13 @@ public class InternalServiceTokenFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String providedToken = request.getHeader(HEADER_NAME);
-        if (internalServiceToken.equals(providedToken)
+        if (internalServiceToken != null
+                && !internalServiceToken.isBlank()
+                && internalServiceToken.equals(providedToken)
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            "auth-service",
+                            "internal-service",
                             null,
                             List.of(new SimpleGrantedAuthority("ROLE_INTERNAL"))
                     );

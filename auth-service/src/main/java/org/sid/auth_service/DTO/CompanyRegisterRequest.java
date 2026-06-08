@@ -28,4 +28,9 @@ public class CompanyRegisterRequest {
 
     @NotBlank
     private String contactLastName;
+
+    private String companyAddress;
+    private String companyPhone;
+    private String domaine;
+    private String pfpUrl;
 }

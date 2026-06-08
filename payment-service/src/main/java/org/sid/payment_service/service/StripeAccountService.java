@@ -11,8 +11,12 @@ import org.sid.payment_service.dto.CreateStripeAccountResponse;
 import org.sid.payment_service.entity.StripeAccount;
 import org.sid.payment_service.entity.StripeAccountOwnerType;
 import org.sid.payment_service.repository.StripeAccountRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Optional;
 
 @Service
 public class StripeAccountService {
@@ -38,11 +42,18 @@ public class StripeAccountService {
     private CreateStripeAccountResponse createAccountForOwner(StripeAccountOwnerType ownerType,
                                                              String ownerId,
                                                              String email) throws StripeException {
-        stripeAccountRepository.findByOwnerTypeAndOwnerId(ownerType, ownerId)
-                .ifPresent(existing -> {
-                    throw new IllegalStateException("Stripe account already exists for owner");
-                });
+        assertStripeConfigured();
 
+        Optional<StripeAccount> existing = stripeAccountRepository.findByOwnerTypeAndOwnerId(ownerType, ownerId);
+        if (existing.isPresent()) {
+            return createOnboardingResponse(existing.get().getStripeAccountId());
+        }
+        return createNewAccount(ownerType, ownerId, email);
+    }
+
+    private CreateStripeAccountResponse createNewAccount(StripeAccountOwnerType ownerType,
+                                                         String ownerId,
+                                                         String email) throws StripeException {
         AccountCreateParams.Builder accountBuilder = AccountCreateParams.builder()
                 .setType(AccountCreateParams.Type.EXPRESS)
                 .setCapabilities(
@@ -62,14 +73,27 @@ public class StripeAccountService {
         stripeAccount.setStripeAccountId(account.getId());
         stripeAccountRepository.save(stripeAccount);
 
+        return createOnboardingResponse(account.getId());
+    }
+
+    private CreateStripeAccountResponse createOnboardingResponse(String stripeAccountId) throws StripeException {
         AccountLinkCreateParams linkParams = AccountLinkCreateParams.builder()
-                .setAccount(account.getId())
+                .setAccount(stripeAccountId)
                 .setRefreshUrl(stripeProperties.getAccountLinkRefreshUrl())
                 .setReturnUrl(stripeProperties.getAccountLinkReturnUrl())
                 .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
                 .build();
         AccountLink link = AccountLink.create(linkParams);
+        return new CreateStripeAccountResponse(stripeAccountId, link.getUrl());
+    }
 
-        return new CreateStripeAccountResponse(account.getId(), link.getUrl());
+    private void assertStripeConfigured() {
+        String secretKey = stripeProperties.getSecretKey();
+        if (secretKey == null || secretKey.isBlank() || "sk_test_xxx".equals(secretKey)) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Stripe n'est pas configure: renseignez STRIPE_SECRET_KEY avec une vraie cle de test Stripe."
+            );
+        }
     }
 }

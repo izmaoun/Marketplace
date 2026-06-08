@@ -6,6 +6,7 @@ import org.sid.payment_service.dto.CreatePaymentRequest;
 import org.sid.payment_service.dto.PaymentResponse;
 import org.sid.payment_service.service.StripePaymentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,14 +27,16 @@ public class PaymentController {
 
     @PostMapping("/mission/{missionId}")
     public ResponseEntity<PaymentResponse> createPayment(@PathVariable String missionId,
-                                                         @Valid @RequestBody CreatePaymentRequest request)
+                                                         @Valid @RequestBody CreatePaymentRequest request,
+                                                         Authentication authentication)
             throws StripeException {
-        return ResponseEntity.ok(stripePaymentService.createPaymentForMissionComplete(missionId, request));
+        return ResponseEntity.ok(stripePaymentService.createPaymentForMissionComplete(missionId, request, authentication));
     }
 
     @GetMapping("/{paymentId}")
-    public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID paymentId) {
-        return ResponseEntity.ok(stripePaymentService.getPayment(paymentId));
+    public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID paymentId,
+                                                      Authentication authentication) {
+        return ResponseEntity.ok(stripePaymentService.getPayment(paymentId, authentication));
     }
 }
 

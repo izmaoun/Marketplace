@@ -14,5 +14,9 @@ public class CompanyRequest {
     private String siret;
     private String contactFirstName;
     private String contactLastName;
+    private String companyAddress;
+    private String companyPhone;
+    private String domaine;
     private String status;
+    private String pfpUrl;
 }

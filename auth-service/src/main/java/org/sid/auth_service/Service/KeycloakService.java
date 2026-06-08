@@ -18,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import jakarta.ws.rs.core.Response;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,13 +77,20 @@ public class KeycloakService {
                 String userId = location.substring(location.lastIndexOf('/') + 1);
                 log.info("Utilisateur {} créé avec ID {}", email, userId);
 
-                RoleRepresentation role = adminKeycloakClient.realm(realm)
-                        .roles().get(roleName).toRepresentation();
-                adminKeycloakClient.realm(realm).users()
-                        .get(userId).roles().realmLevel()
-                        .add(Collections.singletonList(role));
-                log.info("Rôle {} assigné à {}", roleName, email);
-                return userId;
+                try {
+                    RoleRepresentation role = adminKeycloakClient.realm(realm)
+                            .roles().get(roleName).toRepresentation();
+                    adminKeycloakClient.realm(realm).users()
+                            .get(userId).roles().realmLevel()
+                            .add(Collections.singletonList(role));
+                    log.info("Rôle {} assigné à {}", roleName, email);
+                    return userId;
+                } catch (Exception roleException) {
+                    log.error("Échec assignation rôle {} à {} : compensation Keycloak",
+                            roleName, email, roleException);
+                    deleteUser(userId);
+                    return null;
+                }
             } else if (status == 409) {
                 log.warn("Email {} déjà utilisé dans Keycloak (HTTP 409)", email);
                 return null;
@@ -135,13 +143,73 @@ public class KeycloakService {
 
     public boolean deleteUser(String userId) {
         try (Response response = adminKeycloakClient.realm(realm).users().delete(userId)) {
-            boolean ok = response.getStatus() == 204;
+            boolean ok = response.getStatus() == 204 || response.getStatus() == 404;
             if (ok) log.info("Utilisateur {} supprimé de Keycloak (compensation saga)", userId);
             else log.error("Échec suppression utilisateur {} : HTTP {}", userId, response.getStatus());
             return ok;
         } catch (Exception e) {
             log.error("Exception suppression utilisateur {} : {}", userId, e.getMessage());
             return false;
+        }
+    }
+
+    public boolean resetPasswordByEmail(String email, String newPassword) {
+        try {
+            List<UserRepresentation> users = adminKeycloakClient.realm(realm)
+                    .users()
+                    .searchByEmail(email, true);
+            if (users == null || users.isEmpty()) {
+                log.warn("Aucun utilisateur Keycloak trouve pour {}", email);
+                return false;
+            }
+
+            CredentialRepresentation credential = new CredentialRepresentation();
+            credential.setType(CredentialRepresentation.PASSWORD);
+            credential.setValue(newPassword);
+            credential.setTemporary(false);
+
+            adminKeycloakClient.realm(realm)
+                    .users()
+                    .get(users.get(0).getId())
+                    .resetPassword(credential);
+            log.info("Mot de passe Keycloak reinitialise pour {}", email);
+            return true;
+        } catch (Exception e) {
+            log.error("Erreur reset password Keycloak pour {} : {}", email, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateUserProfile(String userId, String firstName, String lastName, String phone, String companyName) {
+        try {
+            UserRepresentation user = adminKeycloakClient.realm(realm).users().get(userId).toRepresentation();
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            Map<String, List<String>> attributes = user.getAttributes();
+            if (attributes == null) {
+                attributes = new java.util.HashMap<>();
+            }
+            putOptionalAttribute(attributes, "phone", phone);
+            putOptionalAttribute(attributes, "companyName", companyName);
+            user.setAttributes(attributes);
+            adminKeycloakClient.realm(realm).users().get(userId).update(user);
+            log.info("Profil Keycloak mis a jour pour userId={}", userId);
+            return true;
+        } catch (Exception e) {
+            log.error("Erreur mise a jour profil Keycloak userId={} : {}", userId, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateUserProfile(String userId, String firstName, String lastName, String phone) {
+        return updateUserProfile(userId, firstName, lastName, phone, null);
+    }
+
+    private void putOptionalAttribute(Map<String, List<String>> attributes, String key, String value) {
+        if (value == null || value.isBlank()) {
+            attributes.remove(key);
+        } else {
+            attributes.put(key, List.of(value));
         }
     }
 

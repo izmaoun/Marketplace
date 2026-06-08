@@ -10,12 +10,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Component
 public class FeignClientInterceptor implements RequestInterceptor {
 
-    @Value("${internal.service-token}")
+    @Value("${internal.service-token:}")
     private String internalServiceToken;
 
     @Override
     public void apply(RequestTemplate template) {
-        template.header("X-Internal-Token", internalServiceToken);
+        if (internalServiceToken != null && !internalServiceToken.isBlank()) {
+            template.header("X-Internal-Token", internalServiceToken);
+        }
 
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();

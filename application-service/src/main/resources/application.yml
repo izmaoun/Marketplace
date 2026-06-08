@@ -1,15 +1,6 @@
 spring:
   application:
     name: application-service
-  cloud:
-    config:
-      enabled: false
-      import-check:
-        enabled: false
-    consul:
-      enabled: false
-  config:
-    import: "optional:configserver:"
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:application_db}
     username: ${SPRING_DATASOURCE_USERNAME:sa}
@@ -23,7 +14,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:${KEYCLOAK_URL:http://localhost:8080}}/realms/${KEYCLOAK_REALM:b2b-platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}/protocol/openid-connect/certs}
 
 server:
   port: 8085
@@ -35,3 +27,8 @@ services:
     url: ${FREELANCER_SERVICE_URL:http://freelancer-service:8082}
   company:
     url: ${COMPANY_SERVICE_URL:http://company-service:8083}
+  messaging:
+    url: ${MESSAGING_SERVICE_URL:http://messaging-service:8087}
+
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:}

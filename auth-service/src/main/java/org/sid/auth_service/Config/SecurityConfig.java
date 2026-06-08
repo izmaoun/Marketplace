@@ -22,7 +22,11 @@ public class SecurityConfig {
                         .requestMatchers("/auth/freelancer/register",
                                 "/auth/company/register",
                                 "/auth/login",
-                                "/auth/refresh").permitAll()
+                                "/auth/login/**",
+                                "/auth/refresh",
+                                "/auth/logout",
+                                "/auth/password/**",
+                                "/auth/internal/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().denyAll()
                 );

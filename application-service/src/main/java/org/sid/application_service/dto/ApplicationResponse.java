@@ -12,6 +12,8 @@ public class ApplicationResponse {
     private Long id;
     private Long missionId;
     private Long missionCompanyId;
+    private Long freelancerId;
+    private String freelancerKeycloakId;
     private String freelancerFullname;
     private String coverLetter;
     private int compatibilityScore;

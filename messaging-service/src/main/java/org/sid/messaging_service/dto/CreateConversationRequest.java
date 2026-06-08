@@ -13,6 +13,10 @@ public class CreateConversationRequest {
     @NotNull
     private Long freelancerId;
 
+    private String companyKeycloakId;
+
+    private String freelancerKeycloakId;
+
     public Long getMissionId() {
         return missionId;
     }
@@ -35,6 +39,22 @@ public class CreateConversationRequest {
 
     public void setFreelancerId(Long freelancerId) {
         this.freelancerId = freelancerId;
+    }
+
+    public String getCompanyKeycloakId() {
+        return companyKeycloakId;
+    }
+
+    public void setCompanyKeycloakId(String companyKeycloakId) {
+        this.companyKeycloakId = companyKeycloakId;
+    }
+
+    public String getFreelancerKeycloakId() {
+        return freelancerKeycloakId;
+    }
+
+    public void setFreelancerKeycloakId(String freelancerKeycloakId) {
+        this.freelancerKeycloakId = freelancerKeycloakId;
     }
 }
 

@@ -52,7 +52,10 @@ public class StripeWebhookService {
     private Event constructEvent(String payload, String signatureHeader) throws StripeException {
         String secret = stripeProperties.getWebhookSecret();
         if (secret == null || secret.isBlank()) {
-            return Event.GSON.fromJson(payload, Event.class);
+            throw new IllegalStateException("Stripe webhook secret is not configured");
+        }
+        if (signatureHeader == null || signatureHeader.isBlank()) {
+            throw new IllegalArgumentException("Stripe signature header is required");
         }
         return Webhook.constructEvent(payload, signatureHeader, secret);
     }

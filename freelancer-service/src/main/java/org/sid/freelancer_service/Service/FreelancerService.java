@@ -5,6 +5,7 @@ import org.sid.freelancer_service.DTO.FreelancerResponse;
 import org.sid.freelancer_service.DTO.FreelancerAdminDTO;
 import org.sid.freelancer_service.DTO.FreelancerProfileDTO;
 import org.sid.freelancer_service.DTO.FreelancerUpdateRequest;
+import org.sid.freelancer_service.DTO.KeycloakProfileUpdateRequest;
 import org.sid.freelancer_service.DTO.MissionResponse;
 import org.sid.freelancer_service.DTO.WorkMode;
 import org.sid.freelancer_service.DTO.StripeAccountOnboardingRequest;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,7 +24,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -30,6 +34,8 @@ public class FreelancerService {
 
     private final FreelancerRepository repository;
     private final MissionServiceClient missionServiceClient;
+    private final AuthServiceClient authServiceClient;
+    private final ApplicationServiceClient applicationServiceClient;
     private final RestTemplate restTemplate;
     private final String paymentServiceBaseUrl;
     private final boolean paymentServiceEnabled;
@@ -38,11 +44,15 @@ public class FreelancerService {
 
     public FreelancerService(FreelancerRepository repository,
                              MissionServiceClient missionServiceClient,
+                             AuthServiceClient authServiceClient,
+                             ApplicationServiceClient applicationServiceClient,
                              RestTemplate restTemplate,
                              @Value("${payment-service.base-url}") String paymentServiceBaseUrl,
                              @Value("${payment-service.enabled:false}") boolean paymentServiceEnabled) {
         this.repository = repository;
         this.missionServiceClient = missionServiceClient;
+        this.authServiceClient = authServiceClient;
+        this.applicationServiceClient = applicationServiceClient;
         this.restTemplate = restTemplate;
         this.paymentServiceBaseUrl = paymentServiceBaseUrl;
         this.paymentServiceEnabled = paymentServiceEnabled;
@@ -62,16 +72,36 @@ public class FreelancerService {
                 .toList();
     }
 
+    public boolean emailExists(String email) {
+        return email != null && repository.findByEmail(email).isPresent();
+    }
+
     public Freelancer findByKeycloakUserId(String keycloakUserId) {
         return repository.findByKeycloakUserId(keycloakUserId);
     }
 
     public Optional<Freelancer> getProfileByKeycloakId(String keycloakUserId) {
-        return Optional.ofNullable(repository.findByKeycloakUserId(keycloakUserId));
+        return repository.findByKeycloakUserIdAndSuspendedFalse(keycloakUserId);
     }
 
     public Optional<Freelancer> getProfile(Long id) {
         return repository.findByIdAndSuspendedFalse(id);
+    }
+
+    public FreelancerProfileDTO getProfileForViewer(Long id, Jwt jwt) {
+        Freelancer freelancer = repository.findByIdAndSuspendedFalse(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Freelancer profile not found"));
+
+        if (hasRole(jwt, "ADMIN")) {
+            return toProfileDto(freelancer);
+        }
+        if (hasRole(jwt, "FREELANCER") && jwt.getSubject().equals(freelancer.getKeycloakUserId())) {
+            return toProfileDto(freelancer);
+        }
+        if (hasRole(jwt, "COMPANY") && companyHasApplicationForFreelancer(id)) {
+            return toProfileDto(freelancer);
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this freelancer profile");
     }
 
     public boolean profileExists(Long id) {
@@ -83,7 +113,8 @@ public class FreelancerService {
     }
 
     public Freelancer updateMyProfile(String keycloakUserId, FreelancerUpdateRequest request) {
-        Freelancer existing = Optional.ofNullable(repository.findByKeycloakUserId(keycloakUserId))
+        validateUpdateRequest(request);
+        Freelancer existing = repository.findByKeycloakUserIdAndSuspendedFalse(keycloakUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Freelancer profile not found"));
 
         existing.setFirstName(request.getFirstName());
@@ -95,11 +126,14 @@ public class FreelancerService {
         existing.setSkills(request.getSkills());
         existing.setExperiences(request.getExperiences());
         existing.setProjects(request.getProjects());
-        return repository.save(existing);
+        Freelancer saved = repository.save(existing);
+        syncKeycloakProfile(saved);
+        return saved;
     }
 
     @Transactional
     public FreelancerResponse createFreelancer(FreelancerRequest request) {
+        validateCreateRequest(request);
         if (repository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already used");
         }
@@ -166,6 +200,7 @@ public class FreelancerService {
     }
 
     public Freelancer updateProfileById(Long id, FreelancerUpdateRequest request) {
+        validateUpdateRequest(request);
         Freelancer existing = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Freelancer not found"));
 
@@ -178,18 +213,65 @@ public class FreelancerService {
         existing.setSkills(request.getSkills());
         existing.setExperiences(request.getExperiences());
         existing.setProjects(request.getProjects());
-        return repository.save(existing);
+        Freelancer saved = repository.save(existing);
+        syncKeycloakProfile(saved);
+        return saved;
     }
 
     public FreelancerProfileDTO toProfileDto(Freelancer freelancer) {
         return new FreelancerProfileDTO(
                 freelancer.getId(),
+                freelancer.getKeycloakUserId(),
+                freelancer.getFirstName(),
+                freelancer.getLastName(),
+                freelancer.getEmail(),
+                freelancer.getPhone(),
                 freelancer.getFirstName() + " " + freelancer.getLastName(),
                 freelancer.getSummary(),
+                freelancer.getCvUrl(),
+                freelancer.getPfpUrl(),
                 freelancer.getSkills(),
                 freelancer.getExperiences(),
                 freelancer.getProjects()
         );
+    }
+
+    private void syncKeycloakProfile(Freelancer freelancer) {
+        try {
+            authServiceClient.updateKeycloakProfile(
+                    freelancer.getKeycloakUserId(),
+                    new KeycloakProfileUpdateRequest(
+                            freelancer.getFirstName(),
+                            freelancer.getLastName(),
+                            freelancer.getPhone()
+                    )
+            );
+        } catch (Exception ignored) {
+            // The business profile remains the source of truth; Keycloak sync is retried on the next update.
+        }
+    }
+
+    private boolean companyHasApplicationForFreelancer(Long freelancerId) {
+        try {
+            return Boolean.TRUE.equals(applicationServiceClient.companyHasApplicationForFreelancer(freelancerId));
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private boolean hasRole(Jwt jwt, String role) {
+        if (jwt == null) {
+            return false;
+        }
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess == null) {
+            return false;
+        }
+        Object rolesObj = realmAccess.get("roles");
+        if (!(rolesObj instanceof Collection<?> roles)) {
+            return false;
+        }
+        return roles.stream().anyMatch(item -> role.equals(item));
     }
 
     private FreelancerAdminDTO toAdminDto(Freelancer freelancer) {
@@ -220,5 +302,29 @@ public class FreelancerService {
 
     public List<MissionResponse> getMissionsByCompany(Long companyId) {
         return missionServiceClient.getMissionsByCompany(companyId);
+    }
+
+    private void validateCreateRequest(FreelancerRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Freelancer payload is required");
+        }
+        if (request.getKeycloakUserId() == null || request.getKeycloakUserId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "keycloakUserId is required");
+        }
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "email is required");
+        }
+        if (request.getFirstName() == null || request.getFirstName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "firstName is required");
+        }
+        if (request.getLastName() == null || request.getLastName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lastName is required");
+        }
+    }
+
+    private void validateUpdateRequest(FreelancerUpdateRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Freelancer update payload is required");
+        }
     }
 }

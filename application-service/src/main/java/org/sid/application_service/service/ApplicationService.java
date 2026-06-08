@@ -4,11 +4,15 @@ import feign.FeignException;
 import org.sid.application_service.client.CompanyServiceClient;
 import org.sid.application_service.client.FreelancerServiceClient;
 import org.sid.application_service.client.MissionServiceClient;
+import org.sid.application_service.client.MessagingServiceClient;
 import org.sid.application_service.dto.ApplicationRequest;
 import org.sid.application_service.dto.ApplicationResponse;
 import org.sid.application_service.dto.ApplicationStatusRequest;
 import org.sid.application_service.dto.CompanyResponse;
+import org.sid.application_service.dto.ConversationResponse;
+import org.sid.application_service.dto.CreateConversationRequest;
 import org.sid.application_service.dto.FreelancerProfileDTO;
+import org.sid.application_service.dto.MessageRequest;
 import org.sid.application_service.dto.MissionResponse;
 import org.sid.application_service.dto.AssignFreelancerRequest;
 import org.sid.application_service.entity.Application;
@@ -36,18 +40,27 @@ public class ApplicationService {
     private final MissionServiceClient missionServiceClient;
     private final FreelancerServiceClient freelancerServiceClient;
     private final CompanyServiceClient companyServiceClient;
+    private final MessagingServiceClient messagingServiceClient;
 
     public ApplicationService(ApplicationRepository repository,
                               MissionServiceClient missionServiceClient,
                               FreelancerServiceClient freelancerServiceClient,
-                              CompanyServiceClient companyServiceClient) {
+                              CompanyServiceClient companyServiceClient,
+                              MessagingServiceClient messagingServiceClient) {
         this.repository = repository;
         this.missionServiceClient = missionServiceClient;
         this.freelancerServiceClient = freelancerServiceClient;
         this.companyServiceClient = companyServiceClient;
+        this.messagingServiceClient = messagingServiceClient;
     }
 
     public ApplicationResponse apply(Jwt jwt, ApplicationRequest request) {
+        if (jwt == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required");
+        }
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Application payload is required");
+        }
         if (request.getMissionId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "missionId is required");
         }
@@ -64,13 +77,16 @@ public class ApplicationService {
                 .missionId(mission.getId())
                 .missionCompanyId(mission.getCompanyId())
                 .freelancerKeycloakId(freelancerKeycloakId)
+                .freelancerId(freelancer.getId())
                 .freelancerFullname(freelancer.displayName())
                 .coverLetter(request.getCoverLetter())
                 .compatibilityScore(calculateCompatibilityScore(freelancer, mission))
                 .status(ApplicationStatus.PENDING)
                 .build();
 
-        return toResponse(repository.save(application));
+        Application saved = repository.save(application);
+        createApplicationMessage(saved, mission, freelancer);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -115,6 +131,17 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
+    public boolean companyHasApplicationForFreelancer(Long freelancerId) {
+        if (freelancerId == null) {
+            return false;
+        }
+        CompanyResponse company = getCurrentCompany();
+        return company != null
+                && company.getId() != null
+                && repository.existsByMissionCompanyIdAndFreelancerId(company.getId(), freelancerId);
+    }
+
+    @Transactional(readOnly = true)
     public List<ApplicationResponse> getAcceptedApplicationsForMission(Long missionId) {
         MissionResponse mission = getPublishedMission(missionId);
         assertCurrentCompanyOwns(mission.getCompanyId());
@@ -129,6 +156,9 @@ public class ApplicationService {
     }
 
     public ApplicationResponse updateStatus(Long id, ApplicationStatusRequest request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status is required");
+        }
         if (request.getStatus() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status is required");
         }
@@ -140,12 +170,21 @@ public class ApplicationService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
         assertCurrentCompanyOwns(application.getMissionCompanyId());
 
+        if (application.getStatus() != ApplicationStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending applications can be updated");
+        }
+        if (request.getStatus() == ApplicationStatus.ACCEPTED
+                && repository.existsByMissionIdAndStatus(application.getMissionId(), ApplicationStatus.ACCEPTED)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Mission already has an accepted application");
+        }
+
         application.setStatus(request.getStatus());
         Application saved = repository.save(application);
         if (request.getStatus() == ApplicationStatus.ACCEPTED) {
             AssignFreelancerRequest assignRequest = new AssignFreelancerRequest();
             assignRequest.setFreelancerKeycloakId(application.getFreelancerKeycloakId());
             missionServiceClient.assignFreelancer(application.getMissionId(), assignRequest);
+            sendAcceptanceMessage(saved);
         }
         return toResponse(saved);
     }
@@ -217,6 +256,78 @@ public class ApplicationService {
         return score;
     }
 
+    private void createApplicationMessage(Application application, MissionResponse mission, FreelancerProfileDTO freelancer) {
+        try {
+            if (application.getFreelancerId() == null) {
+                return;
+            }
+            CreateConversationRequest conversationRequest = new CreateConversationRequest();
+            conversationRequest.setMissionId(application.getMissionId());
+            conversationRequest.setCompanyId(application.getMissionCompanyId());
+            conversationRequest.setFreelancerId(application.getFreelancerId());
+            conversationRequest.setCompanyKeycloakId(mission.getCompanyKeycloakId());
+            conversationRequest.setFreelancerKeycloakId(application.getFreelancerKeycloakId());
+
+            ConversationResponse conversation = messagingServiceClient.createConversation(conversationRequest);
+            if (conversation == null || conversation.getId() == null) {
+                return;
+            }
+
+            MessageRequest messageRequest = new MessageRequest();
+            messageRequest.setConversationId(conversation.getId());
+            messageRequest.setContent(applicationMessage(application, mission, freelancer));
+            messagingServiceClient.sendMessage(messageRequest);
+        } catch (Exception ignored) {
+            // Messaging should not invalidate an otherwise valid application.
+        }
+    }
+
+    private String applicationMessage(Application application, MissionResponse mission, FreelancerProfileDTO freelancer) {
+        String coverLetter = application.getCoverLetter() == null || application.getCoverLetter().isBlank()
+                ? "Candidature envoyee sans lettre de motivation."
+                : application.getCoverLetter();
+        return "Candidature pour la mission \"" + mission.getTitle() + "\" (#" + mission.getId() + ")\n"
+                + "Profil: " + freelancer.displayName() + "\n\n"
+                + coverLetter;
+    }
+
+    private void sendAcceptanceMessage(Application application) {
+        try {
+            MissionResponse mission = missionServiceClient.getMissionById(application.getMissionId());
+            CompanyResponse company = getCurrentCompany();
+
+            CreateConversationRequest conversationRequest = new CreateConversationRequest();
+            conversationRequest.setMissionId(application.getMissionId());
+            conversationRequest.setCompanyId(application.getMissionCompanyId());
+            conversationRequest.setFreelancerId(application.getFreelancerId());
+            conversationRequest.setCompanyKeycloakId(
+                    mission.getCompanyKeycloakId() == null || mission.getCompanyKeycloakId().isBlank()
+                            ? company.getKeycloakId()
+                            : mission.getCompanyKeycloakId()
+            );
+            conversationRequest.setFreelancerKeycloakId(application.getFreelancerKeycloakId());
+
+            ConversationResponse conversation = messagingServiceClient.createConversation(conversationRequest);
+            if (conversation == null || conversation.getId() == null) {
+                return;
+            }
+
+            String companyName = company.getCompanyName() == null || company.getCompanyName().isBlank()
+                    ? "l'entreprise"
+                    : company.getCompanyName();
+            MessageRequest messageRequest = new MessageRequest();
+            messageRequest.setConversationId(conversation.getId());
+            messageRequest.setContent("Vous avez ete accepte pour la mission : "
+                    + mission.getTitle()
+                    + " de la societe "
+                    + companyName
+                    + ".");
+            messagingServiceClient.sendMessage(messageRequest);
+        } catch (Exception ignored) {
+            // Acceptance remains valid even if the notification message cannot be sent.
+        }
+    }
+
     private Set<String> normalize(Collection<String> values) {
         if (values == null) {
             return Collections.emptySet();
@@ -246,6 +357,8 @@ public class ApplicationService {
                 application.getId(),
                 application.getMissionId(),
                 application.getMissionCompanyId(),
+                application.getFreelancerId(),
+                application.getFreelancerKeycloakId(),
                 application.getFreelancerFullname(),
                 application.getCoverLetter(),
                 application.getCompatibilityScore(),

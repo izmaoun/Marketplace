@@ -11,15 +11,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class FeignInterceptor implements RequestInterceptor {
 
-    @Value("${internal.service-token}")
+    @Value("${internal.service-token:}")
     private String internalServiceToken;
 
     @Override
     public void apply(RequestTemplate template) {
-        // Toujours transmettre le token interne
-        template.header("X-Internal-Token", internalServiceToken);
+        if (internalServiceToken != null && !internalServiceToken.isBlank()) {
+            template.header("X-Internal-Token", internalServiceToken);
+        }
 
-        // Transmettre le JWT utilisateur si présent
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
             template.header("Authorization", "Bearer " + jwt.getTokenValue());

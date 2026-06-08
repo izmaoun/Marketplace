@@ -27,10 +27,12 @@ public class InternalServiceTokenFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String providedToken = request.getHeader(HEADER_NAME);
-        if (internalServiceToken.equals(providedToken)) {
+        if (internalServiceToken != null
+                && !internalServiceToken.isBlank()
+                && internalServiceToken.equals(providedToken)) {
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            "company-service",
+                            "internal-service",
                             null,
                             List.of(new SimpleGrantedAuthority("ROLE_INTERNAL"))
                     );

@@ -1,19 +1,31 @@
-# ══ Variables d'environnement ══
+# Environment files
 .env
 .env.local
 .env.production
 
-# ══ Java / Maven ══
+# Java / Maven
 */target/
+.m2-wrapper/
 *.class
 *.jar
 *.war
 
-# ══ IDE ══
+# Frontend / Node
+node_modules/
+*/node_modules/
+dist/
+*/dist/
+
+# IDE
 .idea/
 *.iml
 .vscode/
-*.DS_Store
+.DS_Store
 
-# ══ Docker ══
+# Logs / local reports
+*.log
 */logs/
+qa-e2e-report.json
+
+# Local Keycloak exports may contain client secrets or credentials
+keycloak/realm-export.json

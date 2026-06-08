@@ -63,6 +63,11 @@ public class ApplicationController {
         return applicationService.getApplicationsForCurrentCompany();
     }
 
+    @GetMapping("/company/freelancers/{freelancerId}/access")
+    public boolean companyHasApplicationForFreelancer(@PathVariable Long freelancerId) {
+        return applicationService.companyHasApplicationForFreelancer(freelancerId);
+    }
+
     @PutMapping("/{id:\\d+}/status")
     public ApplicationResponse updateStatus(
             @PathVariable Long id,

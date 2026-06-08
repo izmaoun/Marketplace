@@ -6,8 +6,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -26,6 +26,8 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/missions/admin/**").hasRole("INTERNAL")
+                        .requestMatchers(HttpMethod.GET, "/api/missions/company/*/all").hasRole("INTERNAL")
                         .requestMatchers(HttpMethod.GET, "/api/missions/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/missions/**").hasRole("INTERNAL")
@@ -38,7 +40,7 @@ public class SecurityConfig {
                                 new KeycloakJwtAuthenticationConverter()
                         ))
                 )
-                .addFilterBefore(internalServiceTokenFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterAfter(internalServiceTokenFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 }

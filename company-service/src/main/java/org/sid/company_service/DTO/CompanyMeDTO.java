@@ -16,6 +16,7 @@ public class CompanyMeDTO {
     private String companyPhone;
     private String companyFax;
     private String domaine;
+    private String pfpUrl;
     private String siret;
     private CompanyStatus status;
     // rejectionReason visible uniquement si statut = Rejected

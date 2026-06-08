@@ -8,12 +8,32 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
 
 services:
   freelancer:
     url: ${FREELANCER_SERVICE_URL:http://freelancer-service:8082}
   company:
     url: ${COMPANY_SERVICE_URL:http://company-service:8083}
+
+app:
+  otp:
+    ttl-minutes: ${OTP_TTL_MINUTES:10}
+  dev-otp:
+    enabled: ${APP_DEV_OTP_ENABLED:false}
+  mail:
+    enabled: ${SMTP_ENABLED:false}
+    from: ${SMTP_FROM:no-reply@fic.local}
 
 internal:
   service-token: ${INTERNAL_SERVICE_TOKEN}

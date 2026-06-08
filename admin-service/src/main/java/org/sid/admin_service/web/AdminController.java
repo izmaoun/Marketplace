@@ -5,6 +5,7 @@ import org.sid.admin_service.services.AdminService;
 import org.sid.admin_service.dto.AdminProfileDto;
 import org.sid.admin_service.dto.CompanyDto;
 import org.sid.admin_service.dto.FreelancerDto;
+import org.sid.admin_service.dto.MissionDto;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -36,13 +37,33 @@ public class AdminController {
     }
 
     @GetMapping("/companies/pending")
-    public List<CompanyDto> getPendingCompanies() {
-        return adminService.getPendingCompanies();
+    public List<CompanyDto> getPendingCompanies(@RequestParam(defaultValue = "false") boolean all) {
+        return all ? adminService.getAllCompanies() : adminService.getPendingCompanies();
+    }
+
+    @GetMapping("/companies")
+    public List<CompanyDto> getAllCompanies() {
+        return adminService.getAllCompanies();
     }
 
     @GetMapping("/freelancers")
     public List<FreelancerDto> getAllFreelancers() {
         return adminService.getAllFreelancers();
+    }
+
+    @GetMapping("/missions")
+    public List<MissionDto> getAllMissions() {
+        return adminService.getAllMissions();
+    }
+
+    @GetMapping("/companies/{id}/missions")
+    public List<MissionDto> getCompanyMissions(@PathVariable Long id) {
+        return adminService.getCompanyMissions(id);
+    }
+
+    @GetMapping("/applications/count")
+    public long getTotalApplications() {
+        return adminService.getTotalApplications();
     }
 
     @PostMapping("/companies/{id}/reject")

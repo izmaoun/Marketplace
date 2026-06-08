@@ -6,11 +6,18 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final InternalServiceTokenFilter internalServiceTokenFilter;
+
+    public SecurityConfig(InternalServiceTokenFilter internalServiceTokenFilter) {
+        this.internalServiceTokenFilter = internalServiceTokenFilter;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -25,12 +32,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/applications/mission/**").hasRole("COMPANY")
                         .requestMatchers(HttpMethod.GET, "/api/applications/company/**").hasRole("COMPANY")
                         .requestMatchers(HttpMethod.PUT, "/api/applications/{id:\\d+}/status").hasRole("COMPANY")
-                        .requestMatchers(HttpMethod.GET, "/api/applications/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/admin/**").hasAnyRole("ADMIN", "INTERNAL")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter()))
-                );
+                )
+                .addFilterAfter(internalServiceTokenFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -2,6 +2,8 @@ package org.sid.admin_service.dto;
 
 import org.sid.admin_service.dto.enums.CompanyStatus;
 
+import java.util.List;
+
 public class CompanyDto {
 
     private Long id;
@@ -14,6 +16,8 @@ public class CompanyDto {
     private String domaine;
     private CompanyStatus status;
     private String rejectionReason;
+    private List<MissionDto> missions = List.of();
+    private long applicationCount;
 
     public CompanyDto() {
     }
@@ -97,5 +101,20 @@ public class CompanyDto {
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
     }
-}
 
+    public List<MissionDto> getMissions() {
+        return missions;
+    }
+
+    public void setMissions(List<MissionDto> missions) {
+        this.missions = missions == null ? List.of() : missions;
+    }
+
+    public long getApplicationCount() {
+        return applicationCount;
+    }
+
+    public void setApplicationCount(long applicationCount) {
+        this.applicationCount = applicationCount;
+    }
+}

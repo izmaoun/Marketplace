@@ -18,6 +18,9 @@ public class Freelancer {
     @Column(name = "keycloak_id", unique = true, nullable = false)
     private String keycloakUserId; // L'identifiant de l'utilisateur cote Keycloak
 
+    @Column(name = "keycloak_user_id", unique = true, nullable = false)
+    private String legacyKeycloakUserId;
+
     @Column(nullable = false)
     private String firstName;
 
@@ -29,8 +32,13 @@ public class Freelancer {
 
     private String stripeAccountId;
     private String phone;
+    @Column(columnDefinition = "TEXT")
     private String summary;
+
+    @Column(columnDefinition = "TEXT")
     private String cvUrl;
+
+    @Column(columnDefinition = "TEXT")
     private String pfpUrl;
 
     @ElementCollection
@@ -44,4 +52,10 @@ public class Freelancer {
 
     @Column(name = "is_suspended", nullable = false)
     private boolean suspended = false;
+
+    @PrePersist
+    @PreUpdate
+    private void syncKeycloakColumns() {
+        legacyKeycloakUserId = keycloakUserId;
+    }
 }

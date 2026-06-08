@@ -8,6 +8,8 @@ import org.sid.mission_service.entities.Mission;
 import org.sid.mission_service.entities.MissionStatus;
 import org.sid.mission_service.entities.WorkMode;
 import org.sid.mission_service.repositories.MissionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.math.BigDecimal;
 
@@ -23,16 +27,21 @@ import java.math.BigDecimal;
 @Transactional
 public class MissionService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MissionService.class);
+
     private final MissionRepository missionRepository;
     private final RestTemplate restTemplate;
     private final String paymentServiceBaseUrl;
+    private final String messagingServiceBaseUrl;
 
     public MissionService(MissionRepository missionRepository,
                           RestTemplate restTemplate,
-                          @Value("${payment-service.base-url}") String paymentServiceBaseUrl) {
+                          @Value("${payment-service.base-url}") String paymentServiceBaseUrl,
+                          @Value("${messaging-service.base-url}") String messagingServiceBaseUrl) {
         this.missionRepository = missionRepository;
         this.restTemplate = restTemplate;
         this.paymentServiceBaseUrl = paymentServiceBaseUrl;
+        this.messagingServiceBaseUrl = messagingServiceBaseUrl;
     }
 
     // ── CRUD de base ──────────────────────────────────────────────────────────
@@ -41,11 +50,16 @@ public class MissionService {
         return missionRepository.findByStatus(MissionStatus.PUBLIEE);
     }
 
+    public List<Mission> getEveryMission() {
+        return missionRepository.findAll();
+    }
+
     public Optional<Mission> getMissionById(Long id) {
         return missionRepository.findByIdAndStatus(id, MissionStatus.PUBLIEE);
     }
 
     public Mission createMission(Mission mission, String companyKeycloakId) {
+        validateMissionPayload(mission);
         mission.setStatus(MissionStatus.BROUILLON);
         if (companyKeycloakId != null && !companyKeycloakId.isBlank()) {
             mission.setCompanyKeycloakId(companyKeycloakId);
@@ -54,7 +68,9 @@ public class MissionService {
     }
 
     public Optional<Mission> updateMission(Long id, Mission updated) {
+        validateMissionPayload(updated);
         return missionRepository.findById(id).map(existing -> {
+            assertMissionCanBeUpdated(existing);
             existing.setTitle(updated.getTitle());
             existing.setDescription(updated.getDescription());
             existing.setRequiredSkills(updated.getRequiredSkills());
@@ -80,8 +96,10 @@ public class MissionService {
     }
 
     public boolean deleteMission(Long id) {
-        if (!missionRepository.existsById(id)) return false;
-        missionRepository.deleteById(id);
+        Mission mission = missionRepository.findById(id).orElse(null);
+        if (mission == null) return false;
+        assertMissionCanBeDeleted(mission);
+        missionRepository.delete(mission);
         return true;
     }
 
@@ -111,9 +129,7 @@ public class MissionService {
     }
 
     public Optional<Mission> cloturerMission(Long id) {
-        Optional<Mission> closed = changerStatut(id, MissionStatus.CLOTUREE);
-        closed.ifPresent(this::triggerPayment);
-        return closed;
+        return changerStatut(id, MissionStatus.CLOTUREE);
     }
 
     public Optional<Mission> cloturerMissionForCompany(Long id, Long companyId) {
@@ -126,6 +142,12 @@ public class MissionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "freelancerKeycloakId is required");
         }
         return missionRepository.findById(missionId).map(mission -> {
+            if (mission.getStatus() != MissionStatus.PUBLIEE) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Freelancer can only be assigned to a published mission");
+            }
+            if (mission.getFreelancerKeycloakId() != null && !mission.getFreelancerKeycloakId().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Mission already has an assigned freelancer");
+            }
             mission.setFreelancerKeycloakId(request.getFreelancerKeycloakId());
             return missionRepository.save(mission);
         });
@@ -142,8 +164,19 @@ public class MissionService {
     private Optional<Mission> changerStatut(Long id, MissionStatus nouveauStatut) {
         return missionRepository.findById(id).map(mission -> {
             validateStatusTransition(mission.getStatus(), nouveauStatut);
+            if (nouveauStatut == MissionStatus.PUBLIEE) {
+                validateMissionPayload(mission);
+            }
+            if (nouveauStatut == MissionStatus.EN_COURS
+                    && (mission.getFreelancerKeycloakId() == null || mission.getFreelancerKeycloakId().isBlank())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "freelancerKeycloakId is required to start mission");
+            }
             mission.setStatus(nouveauStatut);
-            return missionRepository.save(mission);
+            Mission savedMission = missionRepository.save(mission);
+            if (nouveauStatut == MissionStatus.PUBLIEE) {
+                notifyMissionPublished(savedMission);
+            }
+            return savedMission;
         });
     }
 
@@ -159,6 +192,42 @@ public class MissionService {
                     HttpStatus.BAD_REQUEST,
                     "Invalid mission status transition: " + current + " -> " + next
             );
+        }
+    }
+
+    private void validateMissionPayload(Mission mission) {
+        if (mission == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mission payload is required");
+        }
+        if (mission.getCompanyId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "companyId is required");
+        }
+        if (mission.getTitle() == null || mission.getTitle().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title is required");
+        }
+        if (mission.getDescription() == null || mission.getDescription().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "description is required");
+        }
+        if (mission.getDurationDays() == null || mission.getDurationDays() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "durationDays must be positive");
+        }
+        if (mission.getBudget() == null || mission.getBudget().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "budget must be positive");
+        }
+        if (mission.getWorkMode() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workMode is required");
+        }
+    }
+
+    private void assertMissionCanBeUpdated(Mission mission) {
+        if (mission.getStatus() != MissionStatus.BROUILLON) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only draft missions can be updated");
+        }
+    }
+
+    private void assertMissionCanBeDeleted(Mission mission) {
+        if (mission.getStatus() == MissionStatus.EN_COURS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Started missions cannot be deleted");
         }
     }
 
@@ -192,10 +261,31 @@ public class MissionService {
         return amount.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
     }
 
+    private void notifyMissionPublished(Mission mission) {
+        try {
+            restTemplate.postForObject(
+                    messagingServiceBaseUrl + "/api/notifications/missions/published",
+                    Map.of(
+                            "missionId", mission.getId(),
+                            "companyId", mission.getCompanyId(),
+                            "title", mission.getTitle(),
+                            "publishedAt", Instant.now().toString()
+                    ),
+                    Void.class
+            );
+        } catch (Exception e) {
+            LOGGER.warn("Mission publication notification failed for mission {}", mission.getId(), e);
+        }
+    }
+
     // ── Requêtes métier ───────────────────────────────────────────────────────
 
     public List<Mission> getMissionsByCompany(Long companyId) {
         return missionRepository.findByCompanyIdAndStatus(companyId, MissionStatus.PUBLIEE);
+    }
+
+    public List<Mission> getAllMissionsByCompany(Long companyId) {
+        return missionRepository.findByCompanyId(companyId);
     }
 
     public List<Mission> getMissionsPublished() {
@@ -212,5 +302,27 @@ public class MissionService {
 
     public List<Mission> searchMissions(String keyword) {
         return missionRepository.searchPublished(keyword);
+    }
+
+    public List<Mission> filterMissions(String skill,
+                                        String keyword,
+                                        WorkMode workMode,
+                                        BigDecimal minBudget,
+                                        BigDecimal maxBudget,
+                                        MissionStatus status) {
+        return missionRepository.filterVisibleForFreelancers(
+                normalizeFilter(skill),
+                normalizeFilter(keyword),
+                workMode,
+                minBudget,
+                maxBudget,
+                status,
+                MissionStatus.PUBLIEE,
+                MissionStatus.BROUILLON
+        );
+    }
+
+    private String normalizeFilter(String value) {
+        return value == null ? null : value.trim();
     }
 }

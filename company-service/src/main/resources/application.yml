@@ -4,19 +4,10 @@ server:
 spring:
   application:
     name: company-service
-  cloud:
-    config:
-      enabled: false
-      import-check:
-        enabled: false
-    consul:
-      enabled: false
-  config:
-    import: ""
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/company_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -27,10 +18,13 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:${KEYCLOAK_URL:http://localhost:8080}}/realms/${KEYCLOAK_REALM:b2b-platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}/protocol/openid-connect/certs}
 
 internal:
-  service-token: ${INTERNAL_SERVICE_TOKEN}
+  service-token: ${INTERNAL_SERVICE_TOKEN:}
 services:
   mission:
     url: ${MISSION_SERVICE_URL:http://mission-service:8084}
+  auth:
+    url: ${AUTH_SERVICE_URL:http://auth-service:8081}

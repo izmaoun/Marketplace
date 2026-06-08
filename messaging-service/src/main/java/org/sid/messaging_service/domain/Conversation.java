@@ -13,6 +13,8 @@ public class Conversation {
     private Long missionId;
     private Long companyId;
     private Long freelancerId;
+    private String companyKeycloakId;
+    private String freelancerKeycloakId;
     private Instant createdAt = Instant.now();
 
     public String getId() {
@@ -45,6 +47,22 @@ public class Conversation {
 
     public void setFreelancerId(Long freelancerId) {
         this.freelancerId = freelancerId;
+    }
+
+    public String getCompanyKeycloakId() {
+        return companyKeycloakId;
+    }
+
+    public void setCompanyKeycloakId(String companyKeycloakId) {
+        this.companyKeycloakId = companyKeycloakId;
+    }
+
+    public String getFreelancerKeycloakId() {
+        return freelancerKeycloakId;
+    }
+
+    public void setFreelancerKeycloakId(String freelancerKeycloakId) {
+        this.freelancerKeycloakId = freelancerKeycloakId;
     }
 
     public Instant getCreatedAt() {

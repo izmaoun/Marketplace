@@ -35,6 +35,7 @@ public class SecurityConfig {
 
                         // Appel interne depuis auth-service
                         .requestMatchers(HttpMethod.POST, "/api/freelances").hasRole("INTERNAL")
+                        .requestMatchers(HttpMethod.GET, "/api/freelances/internal/**").hasRole("INTERNAL")
 
                         // Profil personnel freelancer
                         .requestMatchers(HttpMethod.GET, "/api/freelances/me").hasRole("FREELANCER")
@@ -59,7 +60,7 @@ public class SecurityConfig {
 
                         // Liste des profils freelancers
                         .requestMatchers(HttpMethod.GET, "/api/freelances")
-                        .hasAnyRole("COMPANY", "ADMIN")
+                        .hasRole("ADMIN")
 
                         // Voir un profil freelancer par id
                         .requestMatchers(HttpMethod.GET, "/api/freelances/{id:\\d+}")

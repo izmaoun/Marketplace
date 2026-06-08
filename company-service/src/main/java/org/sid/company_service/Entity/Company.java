@@ -40,6 +40,7 @@ public class Company {
     private String companyPhone;
     private String companyFax;
     private String domaine;
+    private String pfpUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

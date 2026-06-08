@@ -4,21 +4,17 @@ server:
 spring:
   application:
     name: freelancer-service
-  cloud:
-    config:
-      enabled: false
-  config:
-    import: "optional:configserver:"
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/freelancer_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}
+          issuer-uri: ${KEYCLOAK_ISSUER_URL:${KEYCLOAK_URL:http://localhost:8080}}/realms/${KEYCLOAK_REALM:b2b-platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:${KEYCLOAK_URL:http://localhost:8080}/realms/${KEYCLOAK_REALM:b2b-platform}/protocol/openid-connect/certs}
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,12 +22,16 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 internal:
-  service-token: ${INTERNAL_SERVICE_TOKEN}
+  service-token: ${INTERNAL_SERVICE_TOKEN:}
 
 payment-service:
-  base-url: ${PAYMENT_SERVICE_BASE_URL:http://localhost:8088}
+  base-url: ${PAYMENT_SERVICE_BASE_URL:http://payment-service:8088}
   enabled: ${PAYMENT_SERVICE_ENABLED:false}
 
 services:
   mission:
-    url: ${MISSION_SERVICE_URL:http://mission-service:8084}  # ← ajout
+    url: ${MISSION_SERVICE_URL:http://mission-service:8084}
+  auth:
+    url: ${AUTH_SERVICE_URL:http://auth-service:8081}
+  application:
+    url: ${APPLICATION_SERVICE_URL:http://application-service:8085}

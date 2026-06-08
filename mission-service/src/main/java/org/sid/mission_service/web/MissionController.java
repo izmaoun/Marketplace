@@ -2,6 +2,7 @@ package org.sid.mission_service.web;
 
 import org.sid.mission_service.dto.AssignFreelancerRequest;
 import org.sid.mission_service.entities.Mission;
+import org.sid.mission_service.entities.MissionStatus;
 import org.sid.mission_service.entities.WorkMode;
 import org.sid.mission_service.services.MissionService;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/missions")
@@ -26,6 +28,11 @@ public class MissionController {
     @GetMapping
     public List<Mission> getAllMissions() {
         return missionService.getAllMissions();
+    }
+
+    @GetMapping("/admin/all")
+    public List<Mission> getEveryMission() {
+        return missionService.getEveryMission();
     }
 
     @GetMapping("/{id}")
@@ -136,6 +143,11 @@ public class MissionController {
         return missionService.getMissionsByCompany(companyId);
     }
 
+    @GetMapping("/company/{companyId}/all")
+    public List<Mission> getAllMissionsByCompany(@PathVariable Long companyId) {
+        return missionService.getAllMissionsByCompany(companyId);
+    }
+
     // Toutes les missions publiées : GET /api/missions/publiees
     @GetMapping("/publiees")
     public List<Mission> getMissionsPublished() {
@@ -147,18 +159,19 @@ public class MissionController {
     public List<Mission> rechercherMissions(
             @RequestParam(required = false) String skill,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) WorkMode workMode) {
+            @RequestParam(required = false) WorkMode workMode,
+            @RequestParam(required = false) BigDecimal minBudget,
+            @RequestParam(required = false) BigDecimal maxBudget,
+            @RequestParam(required = false) MissionStatus status) {
 
-        if (skill != null) {
-            return missionService.getMissionsBySkill(skill);
-        }
-        if (workMode != null) {
-            return missionService.getMissionsBYWorkMode(workMode);
-        }
-        if (keyword != null) {
+        if (hasText(keyword) && !hasText(skill) && workMode == null && minBudget == null && maxBudget == null && status == null) {
             return missionService.searchMissions(keyword);
         }
-        return missionService.getMissionsPublished();
+        return missionService.filterMissions(skill, keyword, workMode, minBudget, maxBudget, status);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     @PutMapping("/{id}/assign-freelancer")

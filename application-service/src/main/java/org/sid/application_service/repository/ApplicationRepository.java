@@ -10,6 +10,10 @@ import java.util.Optional;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     boolean existsByMissionIdAndFreelancerKeycloakId(Long missionId, String freelancerKeycloakId);
 
+    boolean existsByMissionIdAndStatus(Long missionId, ApplicationStatus status);
+
+    boolean existsByMissionCompanyIdAndFreelancerId(Long missionCompanyId, Long freelancerId);
+
     Optional<Application> findByIdAndFreelancerKeycloakId(Long id, String freelancerKeycloakId);
 
     List<Application> findByFreelancerKeycloakIdOrderByCreatedAtDesc(String freelancerKeycloakId);

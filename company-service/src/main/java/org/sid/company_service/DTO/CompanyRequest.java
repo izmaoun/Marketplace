@@ -4,11 +4,15 @@ import lombok.Data;
 
 @Data
 public class CompanyRequest {
-    private String keycloakUserId;     // → Company.keycloakId
-    private String email;              // → Company.companyEmail
-    private String companyName;        // → Company.companyName
-    private String siret;              // → Company.siret
-    private String contactFirstName;   // → Company.contactFirstName
-    private String contactLastName;    // → Company.contactLastName
-    private String status;             // ignoré — toujours forcé à Pending
+    private String keycloakUserId;
+    private String email;
+    private String companyName;
+    private String siret;
+    private String contactFirstName;
+    private String contactLastName;
+    private String companyAddress;
+    private String companyPhone;
+    private String domaine;
+    private String status;
+    private String pfpUrl;
 }

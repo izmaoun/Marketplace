@@ -7,6 +7,7 @@ public class MessageResponse {
     private String id;
     private String conversationId;
     private Long senderId;
+    private String senderKeycloakId;
     private String senderRole;
     private String content;
     private Instant sentAt;
@@ -18,6 +19,17 @@ public class MessageResponse {
         this.id = id;
         this.conversationId = conversationId;
         this.senderId = senderId;
+        this.senderRole = senderRole;
+        this.content = content;
+        this.sentAt = sentAt;
+    }
+
+    public MessageResponse(String id, String conversationId, Long senderId, String senderKeycloakId,
+                           String senderRole, String content, Instant sentAt) {
+        this.id = id;
+        this.conversationId = conversationId;
+        this.senderId = senderId;
+        this.senderKeycloakId = senderKeycloakId;
         this.senderRole = senderRole;
         this.content = content;
         this.sentAt = sentAt;
@@ -45,6 +57,14 @@ public class MessageResponse {
 
     public void setSenderId(Long senderId) {
         this.senderId = senderId;
+    }
+
+    public String getSenderKeycloakId() {
+        return senderKeycloakId;
+    }
+
+    public void setSenderKeycloakId(String senderKeycloakId) {
+        this.senderKeycloakId = senderKeycloakId;
     }
 
     public String getSenderRole() {

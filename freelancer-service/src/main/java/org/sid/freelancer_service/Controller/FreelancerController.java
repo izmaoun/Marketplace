@@ -35,11 +35,10 @@ public class FreelancerController {
     }
 
     @GetMapping("/{id:\\d+}")
-    public ResponseEntity<FreelancerProfileDTO> getProfile(@PathVariable Long id) {
-        return service.getProfile(id)
-                .map(service::toProfileDto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<FreelancerProfileDTO> getProfile(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(service.getProfileForViewer(id, jwt));
     }
 
     @GetMapping("/admin")
@@ -112,6 +111,13 @@ public class FreelancerController {
         return service.getProfileByKeycloakId(jwt.getSubject())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/internal/email-exists")
+    public ResponseEntity<Void> emailExists(@RequestParam String email) {
+        return service.emailExists(email)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 
     @PutMapping("/me")

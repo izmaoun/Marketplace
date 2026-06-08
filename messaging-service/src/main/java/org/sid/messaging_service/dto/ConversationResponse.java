@@ -8,6 +8,8 @@ public class ConversationResponse {
     private Long missionId;
     private Long companyId;
     private Long freelancerId;
+    private String companyKeycloakId;
+    private String freelancerKeycloakId;
     private Instant createdAt;
 
     public ConversationResponse() {
@@ -18,6 +20,17 @@ public class ConversationResponse {
         this.missionId = missionId;
         this.companyId = companyId;
         this.freelancerId = freelancerId;
+        this.createdAt = createdAt;
+    }
+
+    public ConversationResponse(String id, Long missionId, Long companyId, Long freelancerId,
+                                String companyKeycloakId, String freelancerKeycloakId, Instant createdAt) {
+        this.id = id;
+        this.missionId = missionId;
+        this.companyId = companyId;
+        this.freelancerId = freelancerId;
+        this.companyKeycloakId = companyKeycloakId;
+        this.freelancerKeycloakId = freelancerKeycloakId;
         this.createdAt = createdAt;
     }
 
@@ -51,6 +64,22 @@ public class ConversationResponse {
 
     public void setFreelancerId(Long freelancerId) {
         this.freelancerId = freelancerId;
+    }
+
+    public String getCompanyKeycloakId() {
+        return companyKeycloakId;
+    }
+
+    public void setCompanyKeycloakId(String companyKeycloakId) {
+        this.companyKeycloakId = companyKeycloakId;
+    }
+
+    public String getFreelancerKeycloakId() {
+        return freelancerKeycloakId;
+    }
+
+    public void setFreelancerKeycloakId(String freelancerKeycloakId) {
+        this.freelancerKeycloakId = freelancerKeycloakId;
     }
 
     public Instant getCreatedAt() {

@@ -2,19 +2,26 @@ package org.sid.messaging_service.controller;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.List;
 import org.sid.messaging_service.domain.Conversation;
 import org.sid.messaging_service.domain.Message;
 import org.sid.messaging_service.dto.MessageRequest;
 import org.sid.messaging_service.dto.MessageResponse;
-import org.sid.messaging_service.repository.ConversationRepository;
+import org.sid.messaging_service.security.MessagingUser;
+import org.sid.messaging_service.service.ConversationService;
 import org.sid.messaging_service.service.MessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,33 +29,51 @@ import org.springframework.web.bind.annotation.RestController;
 public class MessageController {
 
     private final MessageService messageService;
-    private final ConversationRepository conversationRepository;
+    private final ConversationService conversationService;
     private final SimpMessagingTemplate messagingTemplate;
 
     public MessageController(
             MessageService messageService,
-            ConversationRepository conversationRepository,
+            ConversationService conversationService,
             SimpMessagingTemplate messagingTemplate
     ) {
         this.messageService = messageService;
-        this.conversationRepository = conversationRepository;
+        this.conversationService = conversationService;
         this.messagingTemplate = messagingTemplate;
     }
 
-    @GetMapping("/conversation/{conversationId}")
-    public List<MessageResponse> history(@PathVariable String conversationId) {
-        return messageService.getHistory(conversationId).stream().map(this::toResponse).toList();
+    @GetMapping({"/conversation/{conversationId}", "/conversations/{conversationId}"})
+    public List<MessageResponse> history(@PathVariable String conversationId,
+                                         @AuthenticationPrincipal Jwt jwt,
+                                         @RequestParam(required = false) Instant from,
+                                         @RequestParam(required = false) Instant to) {
+        conversationService.getVisibleConversation(conversationId, MessagingUser.fromJwt(jwt));
+        return messageService.getHistory(conversationId, from, to).stream().map(this::toResponse).toList();
+    }
+
+    @PostMapping
+    public MessageResponse sendRestMessage(@Valid @RequestBody MessageRequest request,
+                                           @AuthenticationPrincipal Jwt jwt) {
+        MessagingUser user = MessagingUser.fromJwt(jwt);
+        Conversation conversation = conversationService.getVisibleConversation(request.getConversationId(), user);
+
+        Message saved = messageService.saveMessage(conversation, user, request.getContent());
+        MessageResponse response = toResponse(saved);
+
+        messagingTemplate.convertAndSend(
+                "/topic/conversations/" + conversation.getId(),
+                response
+        );
+
+        return response;
     }
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Valid @Payload MessageRequest request, Principal principal) {
-        Conversation conversation = conversationRepository.findById(request.getConversationId())
-                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+        MessagingUser user = MessagingUser.fromPrincipal(principal);
+        Conversation conversation = conversationService.getVisibleConversation(request.getConversationId(), user);
 
-        Long senderId = request.getSenderId() != null ? request.getSenderId() : extractUserId(principal);
-        String senderRole = request.getSenderRole() != null ? request.getSenderRole() : "UNKNOWN";
-
-        Message saved = messageService.saveMessage(conversation, senderId, senderRole, request.getContent());
+        Message saved = messageService.saveMessage(conversation, user, request.getContent());
 
         MessageResponse response = toResponse(saved);
         messagingTemplate.convertAndSend(
@@ -57,22 +82,12 @@ public class MessageController {
         );
     }
 
-    private Long extractUserId(Principal principal) {
-        if (principal != null) {
-            try {
-                return Long.parseLong(principal.getName());
-            } catch (NumberFormatException e) {
-                return 0L;
-            }
-        }
-        return 0L;
-    }
-
     private MessageResponse toResponse(Message message) {
         return new MessageResponse(
                 message.getId(),
                 message.getConversationId(),
                 message.getSenderId(),
+                message.getSenderKeycloakId(),
                 message.getSenderRole(),
                 message.getContent(),
                 message.getSentAt()

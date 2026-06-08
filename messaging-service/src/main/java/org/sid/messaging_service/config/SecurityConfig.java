@@ -16,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -28,6 +29,12 @@ public class SecurityConfig {
     @Value("${app.security.enabled:true}")
     private boolean securityEnabled;
 
+    private final InternalServiceTokenFilter internalServiceTokenFilter;
+
+    public SecurityConfig(InternalServiceTokenFilter internalServiceTokenFilter) {
+        this.internalServiceTokenFilter = internalServiceTokenFilter;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -38,12 +45,16 @@ public class SecurityConfig {
             http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         } else {
             http.authorizeHttpRequests(auth -> auth
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                             .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                             .requestMatchers("/ws/**").permitAll()
-                            .requestMatchers("/api/**").authenticated()
-                            .anyRequest().authenticated()
+                            .requestMatchers(HttpMethod.POST, "/api/notifications/**").hasRole("INTERNAL")
+                            .requestMatchers("/api/conversations/**").hasAnyRole("COMPANY", "FREELANCER", "ADMIN")
+                            .requestMatchers("/api/messages/**").hasAnyRole("COMPANY", "FREELANCER", "ADMIN")
+                            .anyRequest().denyAll()
                     )
-                    .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                    .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                    .addFilterAfter(internalServiceTokenFilter, BearerTokenAuthenticationFilter.class);
         }
         return http.build();
     }

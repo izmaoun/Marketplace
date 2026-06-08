@@ -1,16 +1,21 @@
 package org.sid.messaging_service.controller;
 
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.List;
 import org.sid.messaging_service.domain.Conversation;
 import org.sid.messaging_service.dto.ConversationResponse;
 import org.sid.messaging_service.dto.CreateConversationRequest;
+import org.sid.messaging_service.security.MessagingUser;
 import org.sid.messaging_service.service.ConversationService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,16 +31,21 @@ public class ConversationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ConversationResponse create(@Valid @RequestBody CreateConversationRequest request) {
+    public ConversationResponse create(@Valid @RequestBody CreateConversationRequest request,
+                                       @AuthenticationPrincipal Jwt jwt) {
         Conversation conversation = conversationService.createOrGet(
-            request.getMissionId(), request.getCompanyId(), request.getFreelancerId()
+            request.getMissionId(), request.getCompanyId(), request.getFreelancerId(),
+            request.getCompanyKeycloakId(), request.getFreelancerKeycloakId(),
+            MessagingUser.fromJwt(jwt)
         );
         return toResponse(conversation);
     }
 
     @GetMapping
-    public List<ConversationResponse> list() {
-        return conversationService.findAll().stream().map(this::toResponse).toList();
+    public List<ConversationResponse> list(@AuthenticationPrincipal Jwt jwt,
+                                           @RequestParam(required = false) Instant from,
+                                           @RequestParam(required = false) Instant to) {
+        return conversationService.findVisibleFor(MessagingUser.fromJwt(jwt), from, to).stream().map(this::toResponse).toList();
     }
 
     private ConversationResponse toResponse(Conversation conversation) {
@@ -44,6 +54,8 @@ public class ConversationController {
             conversation.getMissionId(),
             conversation.getCompanyId(),
             conversation.getFreelancerId(),
+            conversation.getCompanyKeycloakId(),
+            conversation.getFreelancerKeycloakId(),
             conversation.getCreatedAt()
         );
     }
