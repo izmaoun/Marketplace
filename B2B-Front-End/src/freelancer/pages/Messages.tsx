@@ -365,7 +365,7 @@ export function Messages() {
           ) : (
             <div className="space-y-6">
               {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
+                <MessageBubble key={message.id} message={message} conversation={activeConversation} />
               ))}
             </div>
           )}
@@ -449,13 +449,14 @@ function ConversationHeader({ conversation }: { conversation: ConversationView }
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
-  const isFreelancer = message.senderRole === "FREELANCER";
+function MessageBubble({ message, conversation }: { message: ChatMessage; conversation: ConversationView }) {
+  const isFreelancer = isFreelancerMessage(message, conversation);
+  const senderLabel = isFreelancer ? "FREELANCER" : "COMPANY";
 
   return (
     <div className={`flex flex-col ${isFreelancer ? "items-end" : "items-start"}`}>
       <div className="mb-1 px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-        {message.senderRole}
+        {senderLabel}
       </div>
       <div
         className={`max-w-[85%] md:max-w-[70%] rounded-2xl p-4 shadow-sm ${
@@ -472,6 +473,16 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
     </div>
   );
+}
+
+function isFreelancerMessage(message: ChatMessage, conversation: Conversation) {
+  if (message.senderKeycloakId && conversation.freelancerKeycloakId) {
+    return message.senderKeycloakId === conversation.freelancerKeycloakId;
+  }
+  if (typeof message.senderId === "number" && typeof conversation.freelancerId === "number") {
+    return message.senderId === conversation.freelancerId;
+  }
+  return message.senderRole === "FREELANCER";
 }
 
 function CompanyAvatar({ imageUrl, name, small = false }: { imageUrl?: string; name: string; small?: boolean }) {

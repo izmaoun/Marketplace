@@ -26,9 +26,9 @@ public class MessageService {
 
         Message message = new Message();
         message.setConversationId(conversation.getId());
-        message.setSenderId(user.senderId());
+        message.setSenderId(resolveSenderId(conversation, user));
         message.setSenderKeycloakId(user.keycloakId());
-        message.setSenderRole(user.senderRole());
+        message.setSenderRole(resolveSenderRole(conversation, user));
         message.setContent(content);
         return messageRepository.save(message);
     }
@@ -48,5 +48,25 @@ public class MessageService {
             return from == null && to == null;
         }
         return (from == null || !value.isBefore(from)) && (to == null || !value.isAfter(to));
+    }
+
+    private Long resolveSenderId(Conversation conversation, MessagingUser user) {
+        if (user.keycloakId().equals(conversation.getCompanyKeycloakId())) {
+            return conversation.getCompanyId();
+        }
+        if (user.keycloakId().equals(conversation.getFreelancerKeycloakId())) {
+            return conversation.getFreelancerId();
+        }
+        return user.senderId();
+    }
+
+    private String resolveSenderRole(Conversation conversation, MessagingUser user) {
+        if (user.keycloakId().equals(conversation.getCompanyKeycloakId())) {
+            return "COMPANY";
+        }
+        if (user.keycloakId().equals(conversation.getFreelancerKeycloakId())) {
+            return "FREELANCER";
+        }
+        return user.senderRole();
     }
 }

@@ -1,9 +1,13 @@
 import { redirect, type LoaderFunction } from "react-router";
-import { getAccessToken, hasRole, type UserRole } from "./auth";
+import { getAccessToken, hasRole, refreshTokens, type UserRole } from "./auth";
 
 export function requireRole(role: UserRole): LoaderFunction {
-  return () => {
-    if (!getAccessToken()) {
+  return async () => {
+    if (!getAccessToken() && !(await refreshTokens())) {
+      return redirect("/sign-in");
+    }
+
+    if (!hasRole(role) && !(await refreshTokens())) {
       return redirect("/sign-in");
     }
 

@@ -1,4 +1,4 @@
-import { clearTokens, getAccessToken, getRefreshToken, saveTokens, type AuthTokens } from "./auth";
+import { getAccessToken, refreshTokens } from "./auth";
 import { runtimeConfig } from "./runtimeConfig";
 
 export const API_BASE_URL = runtimeConfig("VITE_API_BASE_URL", "http://localhost:8280");
@@ -23,14 +23,12 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: ApiBody;
 };
 
-let refreshPromise: Promise<boolean> | undefined;
-
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const response = await sendRequest(path, options);
   const payload = await readPayload(response);
 
   if (response.status === 401 && options.auth !== false && path !== REFRESH_PATH) {
-    const refreshed = await refreshAccessToken();
+    const refreshed = await refreshTokens();
     if (refreshed) {
       const retryResponse = await sendRequest(path, options);
       const retryPayload = await readPayload(retryResponse);
@@ -80,39 +78,6 @@ async function readPayload(response: Response) {
     return response.json();
   }
   return response.text();
-}
-
-async function refreshAccessToken() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    clearTokens();
-    return false;
-  }
-
-  if (!refreshPromise) {
-    refreshPromise = requestTokenRefresh(refreshToken).finally(() => {
-      refreshPromise = undefined;
-    });
-  }
-
-  return refreshPromise;
-}
-
-async function requestTokenRefresh(refreshToken: string) {
-  const response = await sendRequest(REFRESH_PATH, {
-    method: "POST",
-    auth: false,
-    body: { refreshToken },
-  });
-  const payload = await readPayload(response);
-
-  if (!response.ok) {
-    clearTokens();
-    return false;
-  }
-
-  saveTokens(payload as AuthTokens);
-  return true;
 }
 
 function buildApiError(response: Response, payload: unknown) {

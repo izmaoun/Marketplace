@@ -1494,7 +1494,7 @@ function CompanyMessagesView({
           ) : (
             <div className="space-y-5">
               {messages.map((message) => (
-                <CompanyMessageBubble key={message.id} message={message} />
+                <CompanyMessageBubble key={message.id} message={message} conversation={selectedConversation} />
               ))}
             </div>
           )}
@@ -1530,13 +1530,14 @@ function CompanyMessagesView({
   );
 }
 
-function CompanyMessageBubble({ message }: { message: ChatMessage }) {
-  const isCompany = message.senderRole === "COMPANY";
+function CompanyMessageBubble({ message, conversation }: { message: ChatMessage; conversation: CompanyConversationView }) {
+  const isCompany = isCompanyMessage(message, conversation);
+  const senderLabel = isCompany ? "COMPANY" : "FREELANCER";
 
   return (
     <div className={`flex flex-col ${isCompany ? "items-end" : "items-start"}`}>
       <div className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        {message.senderRole}
+        {senderLabel}
       </div>
       <div
         className={`max-w-[85%] rounded-2xl p-4 text-sm shadow-sm md:max-w-[70%] ${
@@ -1553,6 +1554,16 @@ function CompanyMessageBubble({ message }: { message: ChatMessage }) {
       </div>
     </div>
   );
+}
+
+function isCompanyMessage(message: ChatMessage, conversation: Conversation) {
+  if (message.senderKeycloakId && conversation.companyKeycloakId) {
+    return message.senderKeycloakId === conversation.companyKeycloakId;
+  }
+  if (typeof message.senderId === "number" && typeof conversation.companyId === "number") {
+    return message.senderId === conversation.companyId;
+  }
+  return message.senderRole === "COMPANY";
 }
 
 function FreelancerAvatar({ profile, fallback }: { profile?: FreelancerProfile; fallback: string }) {

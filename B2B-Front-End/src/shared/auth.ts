@@ -1,5 +1,9 @@
+import { runtimeConfig } from "./runtimeConfig";
+
 const ACCESS_TOKEN_KEY = "fic_access_token";
 const REFRESH_TOKEN_KEY = "fic_refresh_token";
+const API_BASE_URL = runtimeConfig("VITE_API_BASE_URL", "http://localhost:8280");
+const REFRESH_PATH = "/api/auth/v1/refresh";
 
 export type UserRole = "ADMIN" | "COMPANY" | "FREELANCER";
 
@@ -43,6 +47,42 @@ export function getAccessToken() {
 
 export function getRefreshToken() {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+let refreshPromise: Promise<boolean> | undefined;
+
+export async function refreshTokens() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearTokens();
+    return false;
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = requestTokenRefresh(refreshToken).finally(() => {
+      refreshPromise = undefined;
+    });
+  }
+
+  return refreshPromise;
+}
+
+async function requestTokenRefresh(refreshToken: string) {
+  const response = await fetch(`${API_BASE_URL}${REFRESH_PATH}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!response.ok) {
+    clearTokens();
+    return false;
+  }
+
+  saveTokens((await response.json()) as AuthTokens);
+  return true;
 }
 
 export function getCurrentUserRoles(): UserRole[] {
