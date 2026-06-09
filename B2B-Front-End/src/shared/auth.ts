@@ -4,6 +4,7 @@ const ACCESS_TOKEN_KEY = "fic_access_token";
 const REFRESH_TOKEN_KEY = "fic_refresh_token";
 const API_BASE_URL = runtimeConfig("VITE_API_BASE_URL", "http://localhost:8280");
 const REFRESH_PATH = "/api/auth/v1/refresh";
+const REFRESH_FALLBACK_PATH = "/api/auth/v1/auth/refresh";
 
 export type UserRole = "ADMIN" | "COMPANY" | "FREELANCER";
 
@@ -49,6 +50,16 @@ export function getRefreshToken() {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
+export function isAccessTokenExpired(bufferSeconds = 15) {
+  const token = getAccessToken();
+  if (!token) return true;
+
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return false;
+
+  return payload.exp * 1000 <= Date.now() + bufferSeconds * 1000;
+}
+
 let refreshPromise: Promise<boolean> | undefined;
 
 export async function refreshTokens() {
@@ -68,21 +79,31 @@ export async function refreshTokens() {
 }
 
 async function requestTokenRefresh(refreshToken: string) {
-  const response = await fetch(`${API_BASE_URL}${REFRESH_PATH}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ refreshToken }),
-  });
+  for (const path of [REFRESH_PATH, REFRESH_FALLBACK_PATH]) {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
 
-  if (!response.ok) {
-    clearTokens();
-    return false;
+    if (response.ok) {
+      saveTokens((await response.json()) as AuthTokens);
+      return true;
+    }
+
+    if (response.status === 404) {
+      continue;
+    }
+
+    if (response.status === 400 || response.status === 401 || response.status === 403) {
+      clearTokens();
+      return false;
+    }
   }
 
-  saveTokens((await response.json()) as AuthTokens);
-  return true;
+  return false;
 }
 
 export function getCurrentUserRoles(): UserRole[] {

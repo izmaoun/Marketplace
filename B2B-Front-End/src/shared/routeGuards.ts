@@ -1,9 +1,9 @@
 import { redirect, type LoaderFunction } from "react-router";
-import { getAccessToken, hasRole, refreshTokens, type UserRole } from "./auth";
+import { getAccessToken, hasRole, isAccessTokenExpired, refreshTokens, type UserRole } from "./auth";
 
 export function requireRole(role: UserRole): LoaderFunction {
   return async () => {
-    if (!getAccessToken() && !(await refreshTokens())) {
+    if ((!getAccessToken() || isAccessTokenExpired()) && !(await refreshTokens())) {
       return redirect("/sign-in");
     }
 
