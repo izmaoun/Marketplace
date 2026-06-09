@@ -500,9 +500,6 @@ function isFreelancerMessage(message: ChatMessage, conversation: Conversation) {
   if (message.senderKeycloakId && conversation.freelancerKeycloakId) {
     return message.senderKeycloakId === conversation.freelancerKeycloakId;
   }
-  if (typeof message.senderId === "number" && typeof conversation.freelancerId === "number") {
-    return message.senderId === conversation.freelancerId;
-  }
   return message.senderRole === "FREELANCER";
 }
 

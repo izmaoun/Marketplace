@@ -1581,9 +1581,6 @@ function isCompanyMessage(message: ChatMessage, conversation: Conversation) {
   if (message.senderKeycloakId && conversation.companyKeycloakId) {
     return message.senderKeycloakId === conversation.companyKeycloakId;
   }
-  if (typeof message.senderId === "number" && typeof conversation.companyId === "number") {
-    return message.senderId === conversation.companyId;
-  }
   return message.senderRole === "COMPANY";
 }
 
