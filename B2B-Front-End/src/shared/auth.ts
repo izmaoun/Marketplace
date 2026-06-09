@@ -79,6 +79,8 @@ export async function refreshTokens() {
 }
 
 async function requestTokenRefresh(refreshToken: string) {
+  let hasInvalidTokenResponse = false;
+
   for (const path of [REFRESH_PATH, REFRESH_FALLBACK_PATH]) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
@@ -93,16 +95,14 @@ async function requestTokenRefresh(refreshToken: string) {
       return true;
     }
 
-    if (response.status === 404) {
-      continue;
-    }
-
     if (response.status === 400 || response.status === 401 || response.status === 403) {
-      clearTokens();
-      return false;
+      hasInvalidTokenResponse = true;
     }
   }
 
+  if (hasInvalidTokenResponse) {
+    clearTokens();
+  }
   return false;
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import "../styles/index.css";
 import logoImage from "../../assets/PFS_Logo.jpg";
 import {
@@ -1365,7 +1365,8 @@ function CompanyMessagesView({
     }
   };
 
-  const handleSend = async () => {
+  const handleSend = async (event?: FormEvent) => {
+    event?.preventDefault();
     const content = inputText.trim();
     if (!content || !selectedConversation || isSending) return;
 
@@ -1522,7 +1523,10 @@ function CompanyMessagesView({
         </div>
 
         <div className="border-t border-slate-100 p-4">
-          <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+          <form
+            onSubmit={(event) => void handleSend(event)}
+            className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10"
+          >
             <textarea
               value={inputText}
               onChange={(event) => setInputText(event.target.value)}
@@ -1538,13 +1542,13 @@ function CompanyMessagesView({
               disabled={!selectedConversation || isSending}
             />
             <button
-              onClick={() => void handleSend()}
+              type="submit"
               disabled={!inputText.trim() || !selectedConversation || isSending}
               className="rounded-xl bg-blue-500 p-3 text-white shadow-sm shadow-blue-500/20 transition-colors hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400"
             >
               {isSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
