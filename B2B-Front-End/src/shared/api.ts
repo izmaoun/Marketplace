@@ -1,7 +1,8 @@
-import { getAccessToken } from "./auth";
+import { clearTokens, getAccessToken, getRefreshToken, saveTokens, type AuthTokens } from "./auth";
 import { runtimeConfig } from "./runtimeConfig";
 
 export const API_BASE_URL = runtimeConfig("VITE_API_BASE_URL", "http://localhost:8280");
+const REFRESH_PATH = "/api/auth/v1/refresh";
 
 export class ApiError extends Error {
   status: number;
@@ -22,7 +23,32 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: ApiBody;
 };
 
+let refreshPromise: Promise<boolean> | undefined;
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  const response = await sendRequest(path, options);
+  const payload = await readPayload(response);
+
+  if (response.status === 401 && options.auth !== false && path !== REFRESH_PATH) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      const retryResponse = await sendRequest(path, options);
+      const retryPayload = await readPayload(retryResponse);
+      if (retryResponse.ok) {
+        return retryPayload as T;
+      }
+      throw buildApiError(retryResponse, retryPayload);
+    }
+  }
+
+  if (!response.ok) {
+    throw buildApiError(response, payload);
+  }
+
+  return payload as T;
+}
+
+async function sendRequest(path: string, options: ApiFetchOptions) {
   const { auth = true, body, headers, ...requestOptions } = options;
   const requestHeaders = new Headers(headers);
   let requestBody: BodyInit | undefined;
@@ -41,26 +67,60 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return fetch(`${API_BASE_URL}${path}`, {
     ...requestOptions,
     headers: requestHeaders,
     body: requestBody,
   });
+}
 
+async function readPayload(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+  return response.text();
+}
 
-  if (!response.ok) {
-    const message =
-      typeof payload === "string"
-        ? payload
-        : getPayloadMessage(payload) ?? `HTTP ${response.status}`;
-    throw new ApiError(response.status, message, payload);
+async function refreshAccessToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearTokens();
+    return false;
   }
 
-  return payload as T;
+  if (!refreshPromise) {
+    refreshPromise = requestTokenRefresh(refreshToken).finally(() => {
+      refreshPromise = undefined;
+    });
+  }
+
+  return refreshPromise;
+}
+
+async function requestTokenRefresh(refreshToken: string) {
+  const response = await sendRequest(REFRESH_PATH, {
+    method: "POST",
+    auth: false,
+    body: { refreshToken },
+  });
+  const payload = await readPayload(response);
+
+  if (!response.ok) {
+    clearTokens();
+    return false;
+  }
+
+  saveTokens(payload as AuthTokens);
+  return true;
+}
+
+function buildApiError(response: Response, payload: unknown) {
+  const message =
+    typeof payload === "string"
+      ? payload
+      : getPayloadMessage(payload) ?? `HTTP ${response.status}`;
+  return new ApiError(response.status, message, payload);
 }
 
 function getPayloadMessage(payload: unknown) {
