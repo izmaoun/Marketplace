@@ -57,7 +57,7 @@ public class MessageController {
         MessagingUser user = MessagingUser.fromJwt(jwt);
         Conversation conversation = conversationService.getVisibleConversation(request.getConversationId(), user);
 
-        Message saved = messageService.saveMessage(conversation, user, request.getContent());
+        Message saved = messageService.saveMessage(conversation, user, request.getContent(), request.getSenderRole());
         MessageResponse response = toResponse(saved);
 
         messagingTemplate.convertAndSend(
@@ -73,7 +73,7 @@ public class MessageController {
         MessagingUser user = MessagingUser.fromPrincipal(principal);
         Conversation conversation = conversationService.getVisibleConversation(request.getConversationId(), user);
 
-        Message saved = messageService.saveMessage(conversation, user, request.getContent());
+        Message saved = messageService.saveMessage(conversation, user, request.getContent(), request.getSenderRole());
 
         MessageResponse response = toResponse(saved);
         messagingTemplate.convertAndSend(

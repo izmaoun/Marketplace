@@ -254,7 +254,7 @@ export function Messages() {
     setError("");
 
     try {
-      const sent = await sendChatMessage(activeConversation.id, content);
+      const sent = await sendChatMessage(activeConversation.id, content, "FREELANCER");
       setMessages((current) => mergeChatMessages(current, [sent]));
       setInputText("");
     } catch (err) {

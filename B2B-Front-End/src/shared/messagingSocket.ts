@@ -55,12 +55,12 @@ export class MessagingSocket {
     client.activate();
   }
 
-  send(conversationId: string, content: string) {
+  send(conversationId: string, content: string, senderRole?: "COMPANY" | "FREELANCER") {
     if (!this.client?.connected) return false;
 
     this.client.publish({
       destination: "/app/chat.send",
-      body: JSON.stringify({ conversationId, content }),
+      body: JSON.stringify({ conversationId, content, senderRole }),
     });
     return true;
   }

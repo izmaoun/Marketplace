@@ -1373,7 +1373,7 @@ function CompanyMessagesView({
     setStatusMessage("");
 
     try {
-      const sent = await sendChatMessage(selectedConversation.id, content);
+      const sent = await sendChatMessage(selectedConversation.id, content, "COMPANY");
       setMessages((current) => mergeCompanyChatMessages(current, [sent]));
       setInputText("");
     } catch (err) {

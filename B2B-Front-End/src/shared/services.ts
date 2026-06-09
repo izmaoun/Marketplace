@@ -633,10 +633,10 @@ export function getConversationMessages(conversationId: string, params: Temporal
   return apiFetch<ChatMessage[]>(`/api/messaging/v1/messages/conversations/${conversationId}${suffix ? `?${suffix}` : ""}`);
 }
 
-export function sendChatMessage(conversationId: string, content: string) {
+export function sendChatMessage(conversationId: string, content: string, senderRole?: "COMPANY" | "FREELANCER") {
   return apiFetch<ChatMessage>("/api/messaging/v1/messages", {
     method: "POST",
-    body: { conversationId, content },
+    body: { conversationId, content, senderRole },
   });
 }
 

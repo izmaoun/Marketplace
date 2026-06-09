@@ -20,15 +20,20 @@ public class MessageService {
     }
 
     public Message saveMessage(Conversation conversation, MessagingUser user, String content) {
+        return saveMessage(conversation, user, content, null);
+    }
+
+    public Message saveMessage(Conversation conversation, MessagingUser user, String content, String requestedSenderRole) {
         if (!user.hasKeycloakId() || user.senderRole().equals("ADMIN")) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only conversation participants can send messages");
         }
 
+        String senderRole = resolveSenderRole(conversation, user, requestedSenderRole);
         Message message = new Message();
         message.setConversationId(conversation.getId());
-        message.setSenderId(resolveSenderId(conversation, user));
+        message.setSenderId(resolveSenderId(conversation, user, senderRole));
         message.setSenderKeycloakId(user.keycloakId());
-        message.setSenderRole(resolveSenderRole(conversation, user));
+        message.setSenderRole(senderRole);
         message.setContent(content);
         return messageRepository.save(message);
     }
@@ -50,7 +55,13 @@ public class MessageService {
         return (from == null || !value.isBefore(from)) && (to == null || !value.isAfter(to));
     }
 
-    private Long resolveSenderId(Conversation conversation, MessagingUser user) {
+    private Long resolveSenderId(Conversation conversation, MessagingUser user, String senderRole) {
+        if ("COMPANY".equals(senderRole)) {
+            return conversation.getCompanyId();
+        }
+        if ("FREELANCER".equals(senderRole)) {
+            return conversation.getFreelancerId();
+        }
         if (user.keycloakId().equals(conversation.getCompanyKeycloakId())) {
             return conversation.getCompanyId();
         }
@@ -60,7 +71,23 @@ public class MessageService {
         return user.senderId();
     }
 
-    private String resolveSenderRole(Conversation conversation, MessagingUser user) {
+    private String resolveSenderRole(Conversation conversation, MessagingUser user, String requestedSenderRole) {
+        String normalizedRole = normalizeSenderRole(requestedSenderRole);
+        if ("COMPANY".equals(normalizedRole)) {
+            if (canSendAsCompany(conversation, user)) {
+                return "COMPANY";
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sender role does not match conversation participant");
+        }
+        if ("FREELANCER".equals(normalizedRole)) {
+            if (canSendAsFreelancer(conversation, user)) {
+                return "FREELANCER";
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sender role does not match conversation participant");
+        }
+        if (requestedSenderRole != null && !requestedSenderRole.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sender role is not allowed");
+        }
         if (user.keycloakId().equals(conversation.getCompanyKeycloakId())) {
             return "COMPANY";
         }
@@ -68,5 +95,26 @@ public class MessageService {
             return "FREELANCER";
         }
         return user.senderRole();
+    }
+
+    private boolean canSendAsCompany(Conversation conversation, MessagingUser user) {
+        return user.company()
+                && (user.keycloakId().equals(conversation.getCompanyKeycloakId())
+                || user.keycloakId().equals(conversation.getFreelancerKeycloakId())
+                || (user.companyId() != null && user.companyId().equals(conversation.getCompanyId())));
+    }
+
+    private boolean canSendAsFreelancer(Conversation conversation, MessagingUser user) {
+        return user.freelancer()
+                && (user.keycloakId().equals(conversation.getFreelancerKeycloakId())
+                || user.keycloakId().equals(conversation.getCompanyKeycloakId())
+                || (user.freelancerId() != null && user.freelancerId().equals(conversation.getFreelancerId())));
+    }
+
+    private String normalizeSenderRole(String senderRole) {
+        if (senderRole == null || senderRole.isBlank()) {
+            return null;
+        }
+        return senderRole.trim().toUpperCase();
     }
 }
