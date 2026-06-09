@@ -850,7 +850,7 @@ function ApplicationsView({
             const payment = paymentsByApplication[application.id];
             const paymentSucceeded = isSuccessfulPayment(payment?.status);
             const freelancer = application.freelancerId ? freelancersById[application.freelancerId] : undefined;
-            const freelancerName = freelancerFullName(freelancer) ?? application.freelancerFullname;
+            const freelancerName = freelancerFullName(freelancer) ?? usableFreelancerName(application.freelancerFullname) ?? `Freelancer #${application.freelancerId ?? application.freelancerKeycloakId ?? application.id}`;
 
             return (
               <div key={application.id} className="rounded-xl border border-slate-100 p-4">
@@ -1194,7 +1194,7 @@ function CompanyMessagesView({
           missionTitle: mission?.title ?? `Mission #${conversation.missionId}`,
           freelancerName:
             freelancerFullName(freelancer) ??
-            application?.freelancerFullname ??
+            usableFreelancerName(application?.freelancerFullname) ??
             `Freelancer #${conversation.freelancerId}`,
           freelancerPhoto: freelancer?.pfpUrl,
         };
@@ -1625,6 +1625,15 @@ function freelancerFullName(profile?: FreelancerProfile) {
   if (!profile) return undefined;
   const fullName = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();
   return fullName || profile.email;
+}
+
+function usableFreelancerName(value?: string) {
+  if (!value?.trim()) return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized.includes("indisponible") || normalized === "freelancer") {
+    return undefined;
+  }
+  return value.trim();
 }
 
 function formatMessageTime(value?: string) {

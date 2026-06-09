@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sid.application_service.client.CompanyServiceClient;
 import org.sid.application_service.client.FreelancerServiceClient;
+import org.sid.application_service.client.MessagingServiceClient;
 import org.sid.application_service.client.MissionServiceClient;
 import org.sid.application_service.dto.ApplicationRequest;
 import org.sid.application_service.dto.ApplicationStatusRequest;
@@ -47,6 +48,9 @@ class ApplicationServiceBusinessRulesTest {
     @Mock
     private CompanyServiceClient companyServiceClient;
 
+    @Mock
+    private MessagingServiceClient messagingServiceClient;
+
     private ApplicationService applicationService;
 
     @BeforeEach
@@ -55,7 +59,8 @@ class ApplicationServiceBusinessRulesTest {
                 repository,
                 missionServiceClient,
                 freelancerServiceClient,
-                companyServiceClient
+                companyServiceClient,
+                messagingServiceClient
         );
     }
 
