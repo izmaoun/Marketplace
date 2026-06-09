@@ -1155,6 +1155,7 @@ function CompanyMessagesView({
   applications: ApplicationResponse[];
 }) {
   const socketRef = useRef<MessagingSocket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [freelancersById, setFreelancersById] = useState<Record<number, FreelancerProfile>>({});
   const [selectedConversationId, setSelectedConversationId] = useState<string>("");
@@ -1233,6 +1234,20 @@ function CompanyMessagesView({
     void loadConversation(selectedConversationId);
   }, [selectedConversationId, periodFilter, customFrom, customTo]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, selectedConversationId]);
+
+  useEffect(() => {
+    if (!selectedConversationId) return;
+
+    const intervalId = window.setInterval(() => {
+      void refreshConversationMessages(selectedConversationId);
+    }, 2500);
+
+    return () => window.clearInterval(intervalId);
+  }, [selectedConversationId, periodFilter, customFrom, customTo]);
+
   const loadMessagingData = async () => {
     setIsLoading(true);
     setStatusMessage("");
@@ -1297,15 +1312,22 @@ function CompanyMessagesView({
     }
   };
 
+  const refreshConversationMessages = async (conversationId: string) => {
+    try {
+      const history = await getConversationMessages(conversationId, resolveTemporalRange(periodFilter, customFrom, customTo));
+      setMessages((current) => mergeCompanyChatMessages(current, history));
+    } catch {
+      // The explicit load path already reports errors; polling stays silent.
+    }
+  };
+
   const subscribeToConversation = (conversationId: string) => {
     if (!getAccessToken()) return;
 
     socketRef.current?.disconnect();
     const socket = new MessagingSocket();
     socket.connect(conversationId, (message) => {
-      setMessages((current) =>
-        current.some((item) => item.id === message.id) ? current : [...current, message]
-      );
+      setMessages((current) => mergeCompanyChatMessages(current, [message]));
     });
     socketRef.current = socket;
   };
@@ -1352,9 +1374,7 @@ function CompanyMessagesView({
 
     try {
       const sent = await sendChatMessage(selectedConversation.id, content);
-      setMessages((current) =>
-        current.some((message) => message.id === sent.id) ? current : [...current, sent]
-      );
+      setMessages((current) => mergeCompanyChatMessages(current, [sent]));
       setInputText("");
     } catch (err) {
       setStatusMessage(err instanceof ApiError ? err.message : "Message non envoye.");
@@ -1364,7 +1384,7 @@ function CompanyMessagesView({
   };
 
   return (
-    <div className="grid min-h-[calc(100vh-11rem)] grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
+    <div className="grid h-[calc(100vh-11rem)] min-h-[620px] grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
       <div className="space-y-4">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100/50 overflow-hidden">
           <div className="p-4 border-b border-slate-100">
@@ -1460,7 +1480,7 @@ function CompanyMessagesView({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100/50 overflow-hidden flex min-h-[620px] flex-col">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100/50 overflow-hidden flex min-h-0 flex-col">
         <div className="h-20 border-b border-slate-100 px-6 flex items-center justify-between">
           {selectedConversation ? (
             <div className="flex items-center gap-3 min-w-0">
@@ -1484,7 +1504,7 @@ function CompanyMessagesView({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-6">
           {isHistoryLoading ? (
             <CompanyMessageEmpty icon={<Loader2 className="animate-spin" size={36} />} title="Chargement des messages..." />
           ) : !selectedConversation ? (
@@ -1496,6 +1516,7 @@ function CompanyMessagesView({
               {messages.map((message) => (
                 <CompanyMessageBubble key={message.id} message={message} conversation={selectedConversation} />
               ))}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
@@ -1564,6 +1585,16 @@ function isCompanyMessage(message: ChatMessage, conversation: Conversation) {
     return message.senderId === conversation.companyId;
   }
   return message.senderRole === "COMPANY";
+}
+
+function mergeCompanyChatMessages(current: ChatMessage[], incoming: ChatMessage[]) {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  incoming.forEach((message) => byId.set(message.id, message));
+  return Array.from(byId.values()).sort((left, right) => {
+    const leftTime = left.sentAt ? new Date(left.sentAt).getTime() : 0;
+    const rightTime = right.sentAt ? new Date(right.sentAt).getTime() : 0;
+    return leftTime - rightTime;
+  });
 }
 
 function FreelancerAvatar({ profile, fallback }: { profile?: FreelancerProfile; fallback: string }) {

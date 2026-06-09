@@ -43,6 +43,7 @@ export function Messages() {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const socketRef = useRef<MessagingSocket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [missionsById, setMissionsById] = useState<Record<number, Mission>>({});
@@ -95,6 +96,20 @@ export function Messages() {
   useEffect(() => {
     if (!selectedConversationId) return;
     void loadConversation(selectedConversationId);
+  }, [selectedConversationId, periodFilter, customFrom, customTo]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, selectedConversationId]);
+
+  useEffect(() => {
+    if (!selectedConversationId) return;
+
+    const intervalId = window.setInterval(() => {
+      void refreshConversationMessages(selectedConversationId);
+    }, 2500);
+
+    return () => window.clearInterval(intervalId);
   }, [selectedConversationId, periodFilter, customFrom, customTo]);
 
   const visibleConversations = useMemo(() => {
@@ -175,6 +190,15 @@ export function Messages() {
     }
   };
 
+  const refreshConversationMessages = async (conversationId: string) => {
+    try {
+      const history = await getConversationMessages(conversationId, resolveTemporalRange(periodFilter, customFrom, customTo));
+      setMessages((current) => mergeChatMessages(current, history));
+    } catch {
+      // The explicit load path already reports errors; polling stays silent.
+    }
+  };
+
   const createConversationFromMission = async (missionIdText: string) => {
     const missionId = Number(missionIdText);
     if (!Number.isFinite(missionId)) {
@@ -217,9 +241,7 @@ export function Messages() {
     socketRef.current?.disconnect();
     const socket = new MessagingSocket();
     socket.connect(conversationId, (message) => {
-      setMessages((current) =>
-        current.some((item) => item.id === message.id) ? current : [...current, message]
-      );
+      setMessages((current) => mergeChatMessages(current, [message]));
     });
     socketRef.current = socket;
   };
@@ -233,9 +255,7 @@ export function Messages() {
 
     try {
       const sent = await sendChatMessage(activeConversation.id, content);
-      setMessages((current) =>
-        current.some((message) => message.id === sent.id) ? current : [...current, sent]
-      );
+      setMessages((current) => mergeChatMessages(current, [sent]));
       setInputText("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Message non envoye.");
@@ -245,8 +265,8 @@ export function Messages() {
   };
 
   return (
-    <div className="grid h-full w-full grid-cols-1 md:grid-cols-[350px_minmax(0,1fr)] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
-      <div className={`min-w-0 flex-col border-r border-slate-100 bg-slate-50/50 ${activeConversation ? "hidden md:flex" : "flex"}`}>
+    <div className="grid h-full min-h-0 w-full grid-cols-1 md:grid-cols-[350px_minmax(0,1fr)] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
+      <div className={`min-w-0 min-h-0 flex-col border-r border-slate-100 bg-slate-50/50 ${activeConversation ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b border-slate-100 bg-white">
           <h2 className="text-xl font-bold text-slate-800 mb-4">Messagerie</h2>
           <div className="relative">
@@ -315,7 +335,7 @@ export function Messages() {
         </div>
       </div>
 
-      <div className={`min-w-0 flex-col bg-white ${activeConversation ? "flex" : "hidden md:flex"}`}>
+      <div className={`min-w-0 min-h-0 flex-col bg-white ${activeConversation ? "flex" : "hidden md:flex"}`}>
         <div className="h-[72px] px-6 border-b border-slate-100 flex items-center justify-between bg-white flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <button
@@ -345,7 +365,7 @@ export function Messages() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-6 bg-[#F8FAFC]">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 bg-[#F8FAFC]">
           {isHistoryLoading ? (
             <EmptyState icon={<Loader2 className="animate-spin" size={40} />} title="Chargement des messages..." />
           ) : !activeConversation ? (
@@ -367,6 +387,7 @@ export function Messages() {
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} conversation={activeConversation} />
               ))}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
@@ -532,6 +553,16 @@ function EmptyState({
 function lastMessageFor(conversationId: string, activeMessages: ChatMessage[]) {
   const related = activeMessages.filter((message) => message.conversationId === conversationId);
   return related[related.length - 1];
+}
+
+function mergeChatMessages(current: ChatMessage[], incoming: ChatMessage[]) {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  incoming.forEach((message) => byId.set(message.id, message));
+  return Array.from(byId.values()).sort((left, right) => {
+    const leftTime = left.sentAt ? new Date(left.sentAt).getTime() : 0;
+    const rightTime = right.sentAt ? new Date(right.sentAt).getTime() : 0;
+    return leftTime - rightTime;
+  });
 }
 
 function formatTime(value?: string) {
